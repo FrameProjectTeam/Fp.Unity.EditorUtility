@@ -7,5 +7,7 @@
   "keywords": ["Editor", "Utility", "Git", "Lod"],
   "author": { "name": "Frame Project", "email": "Yevhenii.Vitiuk@gmail.com"},
   "license": "MIT",
-  "dependencies": {}
+  "dependencies": {
+    "com.malee.reorderablelist": "https://github.com/cfoulston/Unity-Reorderable-List.git"
+  }
 }

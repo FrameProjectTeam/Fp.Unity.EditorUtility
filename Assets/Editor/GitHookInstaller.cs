@@ -10,7 +10,7 @@ using UnityEngine;
 
 using Debug = UnityEngine.Debug;
 
-namespace Fp.EditorUtility
+namespace Fp.Editor
 {
 #if GIT_HOOK_AUTOINSTALL
     [InitializeOnLoad]

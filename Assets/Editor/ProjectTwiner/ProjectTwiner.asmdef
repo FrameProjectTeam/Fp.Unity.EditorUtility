@@ -1,0 +1,17 @@
+{
+    "name": "ProjectTwiner",
+    "references": [
+        "GUID:466d4cb32fd66ef4f99747d4eb7191d9"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
