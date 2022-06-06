@@ -3,47 +3,47 @@ using System.Globalization;
 
 using Debug = UnityEngine.Debug;
 
-namespace Editor.ProjectTwiner
+namespace Fp.ProjectTwiner
 {
-    public abstract class CommandLineBuilderBase
-    {
-        private readonly bool _runAsAdmin;
+	public abstract class CommandLineBuilderBase
+	{
+		private readonly bool _runAsAdmin;
 
-        public CommandLineBuilderBase(bool runAsAdmin = true)
-        {
-            _runAsAdmin = runAsAdmin;
-        }
-        
-        public void Execute()
-        {
-            string[] commands = GetCommands();
+		public CommandLineBuilderBase(bool runAsAdmin = true)
+		{
+			_runAsAdmin = runAsAdmin;
+		}
 
-            string stringCommand = string.Format(CultureInfo.InvariantCulture, $"/c {string.Join(" & ", commands)}");
+		public void Execute()
+		{
+			string[] commands = GetCommands();
 
-            Debug.Log($"Command line execution: \ncmd.exe {stringCommand}");
+			string stringCommand = string.Format(CultureInfo.InvariantCulture, $"/c {string.Join(" & ", commands)}");
 
-            var processStartInfo = new ProcessStartInfo
-            {
-                FileName = "cmd",
-                Arguments = stringCommand,
-                UseShellExecute = true,
-                CreateNoWindow = true,
-            };
+			Debug.Log($"Command line execution: \ncmd.exe {stringCommand}");
 
-            if (_runAsAdmin)
-            {
-                processStartInfo.Verb = "runas";
-            }
+			var processStartInfo = new ProcessStartInfo
+			{
+				FileName = "cmd",
+				Arguments = stringCommand,
+				UseShellExecute = true,
+				CreateNoWindow = true
+			};
 
-            var process = new Process {StartInfo = processStartInfo, EnableRaisingEvents = true};
+			if(_runAsAdmin)
+			{
+				processStartInfo.Verb = "runas";
+			}
 
-            process.Start();
+			var process = new Process { StartInfo = processStartInfo, EnableRaisingEvents = true };
 
-            process.WaitForExit();
-            process.Close();
-            process.Dispose();
-        }
+			process.Start();
 
-        protected abstract string[] GetCommands();
-    }
+			process.WaitForExit();
+			process.Close();
+			process.Dispose();
+		}
+
+		protected abstract string[] GetCommands();
+	}
 }

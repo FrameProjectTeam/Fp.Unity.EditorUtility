@@ -1,3 +1,4 @@
 ﻿{
-	"name": "Malee.ReorderableList"
+  "name": "Malee.ReorderableList",
+  "rootNamespace": "Fp"
 }

@@ -1,17 +1,17 @@
-namespace Editor.ProjectTwiner
+namespace Fp.ProjectTwiner
 {
-    /*[InitializeOnLoad]
-    public class TwinProjectHandler
-    {
-        static TwinProjectHandler()
-        {
-            EditorApplication.quitting -= Quit;
-            EditorApplication.quitting += Quit;
-        }
+	/*[InitializeOnLoad]
+	public class TwinProjectHandler
+	{
+		static TwinProjectHandler()
+		{
+			EditorApplication.quitting -= Quit;
+			EditorApplication.quitting += Quit;
+		}
 
-        private static void Quit()
-        {
-            Debug.Log("Quitting the Editor");
-        }
-    }*/
+		private static void Quit()
+		{
+			Debug.Log("Quitting the Editor");
+		}
+	}*/
 }

@@ -8,7 +8,7 @@ using UnityEngine.Assertions;
 
 using Object = UnityEngine.Object;
 
-namespace Fp.Editor
+namespace Fp
 {
     public sealed class LodGroupBuilderWindow : EditorWindow
     {

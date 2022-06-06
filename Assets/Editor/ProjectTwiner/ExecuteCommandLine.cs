@@ -1,48 +1,48 @@
 using System;
 using System.Collections.Generic;
 
-namespace Editor.ProjectTwiner
+namespace Fp.ProjectTwiner
 {
-    public class ExecuteCommandLine : CommandLineBuilderBase, IDisposable
-    {
-        private readonly List<string> _commands = new List<string>();
+	public class ExecuteCommandLine : CommandLineBuilderBase, IDisposable
+	{
+		private readonly List<string> _commands = new List<string>();
 
-        static ExecuteCommandLine()
-        {
-            Instance = new ExecuteCommandLine();
-        }
+		static ExecuteCommandLine()
+		{
+			Instance = new ExecuteCommandLine();
+		}
 
-        public ExecuteCommandLine(bool runAsAdmin = false) : base(runAsAdmin) { }
+		public ExecuteCommandLine(bool runAsAdmin = false) : base(runAsAdmin) { }
 
-        public static ExecuteCommandLine Instance { get; }
+		public static ExecuteCommandLine Instance { get; }
 
-        #region IDisposable Implementation
+#region IDisposable Implementation
 
-        public void Dispose()
-        {
-            Reset();
-        }
+		public void Dispose()
+		{
+			Reset();
+		}
 
-        #endregion
+#endregion
 
-        public void Reset()
-        {
-            _commands.Clear();
-        }
+		public void Reset()
+		{
+			_commands.Clear();
+		}
 
-        public void AddCommand(string command)
-        {
-            if (string.IsNullOrWhiteSpace(command))
-            {
-                throw new ArgumentException(nameof(command));
-            }
+		public void AddCommand(string command)
+		{
+			if(string.IsNullOrWhiteSpace(command))
+			{
+				throw new ArgumentException(nameof(command));
+			}
 
-            _commands.Add(command);
-        }
+			_commands.Add(command);
+		}
 
-        protected override string[] GetCommands()
-        {
-            return _commands.ToArray();
-        }
-    }
+		protected override string[] GetCommands()
+		{
+			return _commands.ToArray();
+		}
+	}
 }

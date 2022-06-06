@@ -1,14 +1,19 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+
 using UnityEditor;
+
 using UnityEngine;
 
-namespace Malee.List {
+using Object = UnityEngine.Object;
 
-	public class ReorderableList {
-
+namespace Fp.ProjectTwiner.Utility.ReorderableList.Editor
+{
+	public class ReorderableList
+	{
 #if UNITY_2019_3_OR_NEWER
 		private const float ELEMENT_EDGE_TOP = 1;
 		private const float ELEMENT_EDGE_BOT = 2;
@@ -24,24 +29,42 @@ namespace Malee.List {
 		private const string EMPTY_LABEL = "List is Empty";
 		private const string ARRAY_ERROR = "{0} is not an Array!";
 
-		public enum ElementDisplayType {
+		public enum ElementDisplayType
+		{
 			Auto,
 			Expandable,
 			SingleLine
 		}
 
 		public delegate void DrawHeaderDelegate(Rect rect, GUIContent label);
+
 		public delegate void DrawFooterDelegate(Rect rect);
-		public delegate void DrawElementDelegate(Rect rect, SerializedProperty element, GUIContent label, bool selected, bool focused);
+
+		public delegate void DrawElementDelegate(
+			Rect rect,
+			SerializedProperty element,
+			GUIContent label,
+			bool selected,
+			bool focused);
+
 		public delegate void ActionDelegate(ReorderableList list);
+
 		public delegate bool ActionBoolDelegate(ReorderableList list);
+
 		public delegate void AddDropdownDelegate(Rect buttonRect, ReorderableList list);
+
 		public delegate Object DragDropReferenceDelegate(Object[] references, ReorderableList list);
+
 		public delegate void DragDropAppendDelegate(Object reference, ReorderableList list);
+
 		public delegate float GetElementHeightDelegate(SerializedProperty element);
+
 		public delegate float GetElementsHeightDelegate(ReorderableList list);
+
 		public delegate string GetElementNameDelegate(SerializedProperty element);
+
 		public delegate GUIContent GetElementLabelDelegate(SerializedProperty element);
+
 		public delegate void SurrogateCallback(SerializedProperty element, Object objectReference, ReorderableList list);
 
 		public event DrawHeaderDelegate drawHeaderCallback;
@@ -83,16 +106,28 @@ namespace Malee.List {
 		public Texture elementIcon;
 		public Surrogate surrogate;
 
-		public bool paginate {
-
-			get { return pagination.enabled; }
-			set { pagination.enabled = value; }
+		public bool paginate
+		{
+			get
+			{
+				return pagination.enabled;
+			}
+			set
+			{
+				pagination.enabled = value;
+			}
 		}
 
-		public int pageSize {
-
-			get { return pagination.fixedPageSize; }
-			set { pagination.fixedPageSize = value; }
+		public int pageSize
+		{
+			get
+			{
+				return pagination.fixedPageSize;
+			}
+			set
+			{
+				pagination.fixedPageSize = value;
+			}
 		}
 
 		internal readonly int id;
@@ -107,14 +142,20 @@ namespace Malee.List {
 		private SlideGroup slideGroup;
 		private int pressIndex;
 
-		private bool doPagination {
-
-			get { return pagination.enabled && !list.serializedObject.isEditingMultipleObjects; }
+		private bool doPagination
+		{
+			get
+			{
+				return pagination.enabled && !list.serializedObject.isEditingMultipleObjects;
+			}
 		}
 
-		private float elementSpacing {
-
-			get { return Mathf.Max(0, verticalSpacing - 2); }
+		private float elementSpacing
+		{
+			get
+			{
+				return Mathf.Max(0, verticalSpacing - 2);
+			}
 		}
 
 		private bool dragging;
@@ -128,38 +169,50 @@ namespace Malee.List {
 		private int dragDropControlID = -1;
 
 		public ReorderableList(SerializedProperty list)
-			: this(list, true, true, true) {
-		}
+			: this(list, true, true, true) { }
 
 		public ReorderableList(SerializedProperty list, bool canAdd, bool canRemove, bool draggable)
-			: this(list, canAdd, canRemove, draggable, ElementDisplayType.Auto, null, null, null) {
-		}
+			: this(list, canAdd, canRemove, draggable, ElementDisplayType.Auto, null, null, null) { }
 
-		public ReorderableList(SerializedProperty list, bool canAdd, bool canRemove, bool draggable, ElementDisplayType elementDisplayType, string elementNameProperty, Texture elementIcon)
-			: this(list, canAdd, canRemove, draggable, elementDisplayType, elementNameProperty, null, elementIcon) {
-		}
+		public ReorderableList(
+			SerializedProperty list,
+			bool canAdd,
+			bool canRemove,
+			bool draggable,
+			ElementDisplayType elementDisplayType,
+			string elementNameProperty,
+			Texture elementIcon)
+			: this(list, canAdd, canRemove, draggable, elementDisplayType, elementNameProperty, null, elementIcon) { }
 
-		public ReorderableList(SerializedProperty list, bool canAdd, bool canRemove, bool draggable, ElementDisplayType elementDisplayType, string elementNameProperty, string elementNameOverride, Texture elementIcon) {
-
-			if (list == null) {
-
+		public ReorderableList(
+			SerializedProperty list,
+			bool canAdd,
+			bool canRemove,
+			bool draggable,
+			ElementDisplayType elementDisplayType,
+			string elementNameProperty,
+			string elementNameOverride,
+			Texture elementIcon)
+		{
+			if(list == null)
+			{
 				throw new MissingListExeption();
 			}
-			else if (!list.isArray) {
-
+			else if(!list.isArray)
+			{
 				//check if user passed in a ReorderableArray, if so, that becomes the list object
 
 				SerializedProperty array = list.FindPropertyRelative("array");
 
-				if (array == null || !array.isArray) {
-
+				if(array == null || !array.isArray)
+				{
 					throw new InvalidListException();
 				}
 
 				this.list = array;
 			}
-			else {
-
+			else
+			{
 				this.list = list;
 			}
 
@@ -212,27 +265,36 @@ namespace Malee.List {
 		// -- PROPERTIES --
 		//
 
-		public SerializedProperty List {
-
-			get { return list; }
-			internal set { list = value; }
+		public SerializedProperty List
+		{
+			get
+			{
+				return list;
+			}
+			internal set
+			{
+				list = value;
+			}
 		}
 
-		public bool HasList {
-
-			get { return list != null && list.isArray; }
+		public bool HasList
+		{
+			get
+			{
+				return list != null && list.isArray;
+			}
 		}
 
-		public int Length {
-
-			get {
-
-				if (!HasList) {
-
+		public int Length
+		{
+			get
+			{
+				if(!HasList)
+				{
 					return 0;
 				}
-				else if (!list.hasMultipleDifferentValues) {
-
+				else if(!list.hasMultipleDifferentValues)
+				{
 					return list.arraySize;
 				}
 
@@ -241,8 +303,8 @@ namespace Malee.List {
 
 				int smallerArraySize = list.arraySize;
 
-				foreach (Object targetObject in list.serializedObject.targetObjects) {
-
+				foreach(Object targetObject in list.serializedObject.targetObjects)
+				{
 					SerializedObject serializedObject = new SerializedObject(targetObject);
 					SerializedProperty property = serializedObject.FindProperty(list.propertyPath);
 
@@ -253,81 +315,99 @@ namespace Malee.List {
 			}
 		}
 
-		public int VisibleLength {
-
-			get { return pagination.GetVisibleLength(Length); }
+		public int VisibleLength
+		{
+			get
+			{
+				return pagination.GetVisibleLength(Length);
+			}
 		}
 
-		public int[] Selected {
-
-			get { return selection.ToArray(); }
-			set { selection = new ListSelection(value); }
+		public int[] Selected
+		{
+			get
+			{
+				return selection.ToArray();
+			}
+			set
+			{
+				selection = new ListSelection(value);
+			}
 		}
 
-		public int Index {
-
-			get { return selection.First; }
-			set { selection.Select(value); }
+		public int Index
+		{
+			get
+			{
+				return selection.First;
+			}
+			set
+			{
+				selection.Select(value);
+			}
 		}
 
-		public bool IsDragging {
-
-			get { return dragging; }
+		public bool IsDragging
+		{
+			get
+			{
+				return dragging;
+			}
 		}
 
 		//
 		// -- PUBLIC --
 		//
 
-		public float GetHeight() {
-
-			if (HasList) {
-
+		public float GetHeight()
+		{
+			if(HasList)
+			{
 				float topHeight = doPagination ? headerHeight + paginationHeight : headerHeight;
 
 				return list.isExpanded ? topHeight + GetElementsHeight() + footerHeight : headerHeight;
 			}
-			else {
-
+			else
+			{
 				return EditorGUIUtility.singleLineHeight;
 			}
 		}
 
-		public float GetElementHeight(int index) {
-
+		public float GetElementHeight(int index)
+		{
 			return index >= 0 && index < Length ? GetElementHeight(list.GetArrayElementAtIndex(index)) : 0;
 		}
 
-		public void DoLayoutList() {
-
+		public void DoLayoutList()
+		{
 			Rect position = EditorGUILayout.GetControlRect(false, GetHeight(), EditorStyles.largeLabel);
 
 			DoList(EditorGUI.IndentedRect(position), label);
 		}
 
-		public void DoList(Rect rect, GUIContent label) {
-
+		public void DoList(Rect rect, GUIContent label)
+		{
 			int indent = EditorGUI.indentLevel;
 			EditorGUI.indentLevel = 0;
 
 			Rect headerRect = rect;
 			headerRect.height = headerHeight;
 
-			if (!HasList) {
-
+			if(!HasList)
+			{
 				DrawEmpty(headerRect, string.Format(ARRAY_ERROR, label.text), GUIStyle.none, EditorStyles.helpBox);
 			}
-			else {
-
+			else
+			{
 				controlID = GUIUtility.GetControlID(selectionHash, FocusType.Keyboard, rect);
 				dragDropControlID = GUIUtility.GetControlID(dragAndDropHash, FocusType.Passive, rect);
 
 				DrawHeader(headerRect, label);
 
-				if (list.isExpanded) {
-
-					if (doPagination) {
-
+				if(list.isExpanded)
+				{
+					if(doPagination)
+					{
 						Rect paginateHeaderRect = headerRect;
 						paginateHeaderRect.y += headerRect.height;
 						paginateHeaderRect.height = paginationHeight;
@@ -347,25 +427,25 @@ namespace Malee.List {
 
 					Event evt = Event.current;
 
-					if (selection.Length > 1) {
-
-						if (evt.type == EventType.ContextClick && CanSelect(evt.mousePosition)) {
-
+					if(selection.Length > 1)
+					{
+						if(evt.type == EventType.ContextClick && CanSelect(evt.mousePosition))
+						{
 							HandleMultipleContextClick(evt);
 						}
 					}
 
-					if (Length > 0) {
-
+					if(Length > 0)
+					{
 						//update element rects if not dragging. Dragging caches draw rects so no need to update
 
-						if (!dragging) {
-
+						if(!dragging)
+						{
 							UpdateElementRects(elementBackgroundRect, evt);
 						}
 
-						if (elementRects.Length > 0) {
-
+						if(elementRects.Length > 0)
+						{
 							int start, end;
 
 							pagination.GetVisibleRange(elementRects.Length, out start, out end);
@@ -379,8 +459,8 @@ namespace Malee.List {
 							HandlePostSelection(selectableRect, evt);
 						}
 					}
-					else {
-
+					else
+					{
 						DrawEmpty(elementBackgroundRect, EMPTY_LABEL, Style.boxBackground, Style.verticalLabel);
 					}
 
@@ -396,22 +476,23 @@ namespace Malee.List {
 			EditorGUI.indentLevel = indent;
 		}
 
-		public SerializedProperty AddItem<T>(T item) where T : Object {
-
+		public SerializedProperty AddItem<T>(T item)
+			where T : Object
+		{
 			SerializedProperty property = AddItem();
 
-			if (property != null) {
-
+			if(property != null)
+			{
 				property.objectReferenceValue = item;
 			}
 
 			return property;
 		}
 
-		public SerializedProperty AddItem() {
-
-			if (HasList) {
-
+		public SerializedProperty AddItem()
+		{
+			if(HasList)
+			{
 				list.arraySize++;
 				selection.Select(list.arraySize - 1);
 
@@ -420,40 +501,40 @@ namespace Malee.List {
 
 				return list.GetArrayElementAtIndex(selection.Last);
 			}
-			else {
-
+			else
+			{
 				throw new InvalidListException();
 			}
 		}
 
-		public void Remove(int[] selection) {
-
-			System.Array.Sort(selection);
+		public void Remove(int[] selection)
+		{
+			Array.Sort(selection);
 
 			int i = selection.Length;
 
-			while (--i > -1) {
-
+			while(--i > -1)
+			{
 				RemoveItem(selection[i]);
 			}
 		}
 
-		public void RemoveItem(int index) {
-
-			if (index >= 0 && index < Length) {
-
+		public void RemoveItem(int index)
+		{
+			if(index >= 0 && index < Length)
+			{
 				SerializedProperty property = list.GetArrayElementAtIndex(index);
 
-				if (property.propertyType == SerializedPropertyType.ObjectReference && property.objectReferenceValue) {
-
+				if(property.propertyType == SerializedPropertyType.ObjectReference && property.objectReferenceValue)
+				{
 					property.objectReferenceValue = null;
 				}
 
 				list.DeleteArrayElementAtIndex(index);
 				selection.Remove(index);
 
-				if (Length > 0) {
-
+				if(Length > 0)
+				{
 					selection.Select(Mathf.Max(0, index - 1));
 				}
 
@@ -461,28 +542,28 @@ namespace Malee.List {
 			}
 		}
 
-		public SerializedProperty GetItem(int index) {
-
-			if (index >= 0 && index < Length) {
-
+		public SerializedProperty GetItem(int index)
+		{
+			if(index >= 0 && index < Length)
+			{
 				return list.GetArrayElementAtIndex(index);
 			}
-			else {
-
+			else
+			{
 				return null;
 			}
 		}
 
-		public int IndexOf(SerializedProperty element) {
-
-			if (element != null) {
-
+		public int IndexOf(SerializedProperty element)
+		{
+			if(element != null)
+			{
 				int i = Length;
 
-				while (--i > -1) {
-
-					if (SerializedProperty.EqualContents(element, list.GetArrayElementAtIndex(i))) {
-
+				while(--i > -1)
+				{
+					if(SerializedProperty.EqualContents(element, list.GetArrayElementAtIndex(i)))
+					{
 						return i;
 					}
 				}
@@ -491,47 +572,47 @@ namespace Malee.List {
 			return -1;
 		}
 
-		public void GrabKeyboardFocus() {
-
+		public void GrabKeyboardFocus()
+		{
 			GUIUtility.keyboardControl = id;
 		}
 
-		public bool HasKeyboardControl() {
-
+		public bool HasKeyboardControl()
+		{
 			return GUIUtility.keyboardControl == id;
 		}
 
-		public void ReleaseKeyboardFocus() {
-
-			if (GUIUtility.keyboardControl == id) {
-
+		public void ReleaseKeyboardFocus()
+		{
+			if(GUIUtility.keyboardControl == id)
+			{
 				GUIUtility.keyboardControl = 0;
 			}
 		}
 
-		public void SetPage(int page) {
-
-			if (doPagination) {
-
+		public void SetPage(int page)
+		{
+			if(doPagination)
+			{
 				pagination.page = page;
 			}
 		}
 
-		public void SetPageByIndex(int index) {
-
-			if (doPagination) {
-
+		public void SetPageByIndex(int index)
+		{
+			if(doPagination)
+			{
 				pagination.page = pagination.GetPageForIndex(index);
 			}
 		}
 
-		public int GetPage(int index) {
-
+		public int GetPage(int index)
+		{
 			return doPagination ? pagination.page : 0;
 		}
 
-		public int GetPageByIndex(int index) {
-
+		public int GetPageByIndex(int index)
+		{
 			return doPagination ? pagination.GetPageForIndex(index) : 0;
 		}
 
@@ -539,17 +620,17 @@ namespace Malee.List {
 		// -- PRIVATE --
 		//
 
-		private float GetElementsHeight() {
-
-			if (getElementsHeightCallback != null) {
-
+		private float GetElementsHeight()
+		{
+			if(getElementsHeightCallback != null)
+			{
 				return getElementsHeightCallback(this);
 			}
 
 			int i, len = Length;
 
-			if (len == 0) {
-
+			if(len == 0)
+			{
 				return 28;
 			}
 
@@ -560,34 +641,34 @@ namespace Malee.List {
 
 			pagination.GetVisibleRange(len, out start, out end);
 
-			for (i = start; i < end; i++) {
-
+			for(i = start; i < end; i++)
+			{
 				totalHeight += GetElementHeight(list.GetArrayElementAtIndex(i)) + spacing;
 			}
 
 			return totalHeight + 7 - spacing;
 		}
 
-		private float GetElementHeight(SerializedProperty element) {
-
-			if (getElementHeightCallback != null) {
-
+		private float GetElementHeight(SerializedProperty element)
+		{
+			if(getElementHeightCallback != null)
+			{
 				return getElementHeightCallback(element) + ELEMENT_HEIGHT_OFFSET;
 			}
-			else {
-
+			else
+			{
 				return EditorGUI.GetPropertyHeight(element, GetElementLabel(element, elementLabels), IsElementExpandable(element)) + ELEMENT_HEIGHT_OFFSET;
 			}
 		}
 
-		private Rect GetElementDrawRect(int index, Rect desiredRect) {
-
-			if (slideEasing <= 0) {
-
+		private Rect GetElementDrawRect(int index, Rect desiredRect)
+		{
+			if(slideEasing <= 0)
+			{
 				return desiredRect;
 			}
-			else {
-
+			else
+			{
 				//lerp the drag easing toward slide easing, this creates a stronger easing at the start then slower at the end
 				//when dealing with large lists, we can
 
@@ -605,8 +686,8 @@ namespace Malee.List {
 		}
 		*/
 
-		private Rect GetElementRenderRect(SerializedProperty element, Rect elementRect) {
-
+		private Rect GetElementRenderRect(SerializedProperty element, Rect elementRect)
+		{
 			float offset = draggable ? 20 : 5;
 
 			Rect rect = elementRect;
@@ -618,10 +699,10 @@ namespace Malee.List {
 			return rect;
 		}
 
-		private void DrawHeader(Rect rect, GUIContent label) {
-
-			if (showDefaultBackground && Event.current.type == EventType.Repaint) {
-
+		private void DrawHeader(Rect rect, GUIContent label)
+		{
+			if(showDefaultBackground && Event.current.type == EventType.Repaint)
+			{
 				Style.headerBackground.Draw(rect, false, false, false, false);
 			}
 
@@ -635,38 +716,38 @@ namespace Malee.List {
 
 			label = EditorGUI.BeginProperty(titleRect, label, list);
 
-			if (drawHeaderCallback != null) {
-
+			if(drawHeaderCallback != null)
+			{
 				drawHeaderCallback(titleRect, label);
 			}
-			else if (expandable) {
-
+			else if(expandable)
+			{
 				titleRect.xMin += 10;
 
 				EditorGUI.BeginChangeCheck();
 
 				bool isExpanded = EditorGUI.Foldout(titleRect, list.isExpanded, label, true);
 
-				if (EditorGUI.EndChangeCheck()) {
-
+				if(EditorGUI.EndChangeCheck())
+				{
 					list.isExpanded = isExpanded;
 				}
 			}
-			else {
-
+			else
+			{
 				GUI.Label(titleRect, label, EditorStyles.label);
 			}
 
 			EditorGUI.EndProperty();
 
-			if (multiline) {
-
+			if(multiline)
+			{
 				Rect bRect1 = rect;
 				bRect1.xMin = rect.xMax - 25;
 				bRect1.xMax = rect.xMax - 5;
 
-				if (GUI.Button(bRect1, Style.expandButton, Style.preButtonStretch)) {
-
+				if(GUI.Button(bRect1, Style.expandButton, Style.preButtonStretch))
+				{
 					ExpandElements(true);
 				}
 
@@ -674,8 +755,8 @@ namespace Malee.List {
 				bRect2.xMin = bRect1.xMin - 20;
 				bRect2.xMax = bRect1.xMin;
 
-				if (GUI.Button(bRect2, Style.collapseButton, Style.preButtonStretch)) {
-
+				if(GUI.Button(bRect2, Style.collapseButton, Style.preButtonStretch))
+				{
 					ExpandElements(false);
 				}
 
@@ -684,8 +765,8 @@ namespace Malee.List {
 
 			//draw sorting options
 
-			if (sortable) {
-
+			if(sortable)
+			{
 				Rect sortRect1 = rect;
 				sortRect1.xMin = rect.xMax - 25;
 				sortRect1.xMax = rect.xMax;
@@ -694,41 +775,41 @@ namespace Malee.List {
 				sortRect2.xMin = sortRect1.xMin - 20;
 				sortRect2.xMax = sortRect1.xMin;
 
-				if (EditorGUI.DropdownButton(sortRect1, Style.sortAscending, FocusType.Passive, Style.preButtonStretch)) {
-
+				if(EditorGUI.DropdownButton(sortRect1, Style.sortAscending, FocusType.Passive, Style.preButtonStretch))
+				{
 					SortElements(sortRect1, false);
 				}
 
-				if (EditorGUI.DropdownButton(sortRect2, Style.sortDescending, FocusType.Passive, Style.preButtonStretch)) {
-
+				if(EditorGUI.DropdownButton(sortRect2, Style.sortDescending, FocusType.Passive, Style.preButtonStretch))
+				{
 					SortElements(sortRect2, true);
 				}
 			}
 		}
 
-		private void ExpandElements(bool expand) {
-
-			if (!list.isExpanded && expand) {
-
+		private void ExpandElements(bool expand)
+		{
+			if(!list.isExpanded && expand)
+			{
 				list.isExpanded = true;
 			}
 
 			int i, len = Length;
 
-			for (i = 0; i < len; i++) {
-
+			for(i = 0; i < len; i++)
+			{
 				list.GetArrayElementAtIndex(i).isExpanded = expand;
 			}
 		}
 
-		private void SortElements(Rect rect, bool descending) {
-
+		private void SortElements(Rect rect, bool descending)
+		{
 			int total = Length;
 
 			//no point in sorting a list with 1 element!
 
-			if (total <= 1) {
-
+			if(total <= 1)
+			{
 				return;
 			}
 
@@ -737,8 +818,8 @@ namespace Malee.List {
 
 			SerializedProperty prop = list.GetArrayElementAtIndex(0);
 
-			if (prop.propertyType == SerializedPropertyType.Generic) {
-
+			if(prop.propertyType == SerializedPropertyType.Generic)
+			{
 				GenericMenu menu = new GenericMenu();
 
 				SerializedProperty property = prop.Copy();
@@ -746,27 +827,28 @@ namespace Malee.List {
 
 				bool enterChildren = true;
 
-				while (property.NextVisible(enterChildren) && !SerializedProperty.EqualContents(property, end)) {
+				while(property.NextVisible(enterChildren) && !SerializedProperty.EqualContents(property, end))
+				{
+					menu.AddItem(
+						new GUIContent(property.name), false, userData =>
+						{
+							//sort based on the property selected then apply the changes
 
-					menu.AddItem(new GUIContent(property.name), false, userData => {
+							ListSort.SortOnProperty(list, total, descending, (string)userData);
 
-						//sort based on the property selected then apply the changes
+							ApplyReorder();
 
-						ListSort.SortOnProperty(list, total, descending, (string)userData);
-
-						ApplyReorder();
-
-						HandleUtility.Repaint();
-
-					}, property.name);
+							HandleUtility.Repaint();
+						}, property.name
+					);
 
 					enterChildren = false;
 				}
 
 				menu.DropDown(rect);
 			}
-			else {
-
+			else
+			{
 				//list is not generic, so we just sort directly on the type then apply the changes
 
 				ListSort.SortOnType(list, total, descending, prop.propertyType);
@@ -775,29 +857,29 @@ namespace Malee.List {
 			}
 		}
 
-		private void DrawEmpty(Rect rect, string label, GUIStyle backgroundStyle, GUIStyle labelStyle) {
-
-			if (showDefaultBackground && Event.current.type == EventType.Repaint) {
-
+		private void DrawEmpty(Rect rect, string label, GUIStyle backgroundStyle, GUIStyle labelStyle)
+		{
+			if(showDefaultBackground && Event.current.type == EventType.Repaint)
+			{
 				backgroundStyle.Draw(rect, false, false, false, false);
 			}
 
 			EditorGUI.LabelField(rect, label, labelStyle);
 		}
 
-		private void UpdateElementRects(Rect rect, Event evt) {
-
+		private void UpdateElementRects(Rect rect, Event evt)
+		{
 			//resize array if elements changed
 
 			int i, len = Length;
 
-			if (len != elementRects.Length) {
-
-				System.Array.Resize(ref elementRects, len);
+			if(len != elementRects.Length)
+			{
+				Array.Resize(ref elementRects, len);
 			}
 
-			if (evt.type == EventType.Repaint) {
-
+			if(evt.type == EventType.Repaint)
+			{
 				//start rect
 
 				Rect elementRect = rect;
@@ -809,8 +891,8 @@ namespace Malee.List {
 
 				pagination.GetVisibleRange(len, out start, out end);
 
-				for (i = start; i < end; i++) {
-
+				for(i = start; i < end; i++)
+				{
 					SerializedProperty element = list.GetArrayElementAtIndex(i);
 
 					//update the elementRects value for this object. Grab the last elementRect for startPosition
@@ -824,32 +906,34 @@ namespace Malee.List {
 			}
 		}
 
-		private void DrawElements(Rect rect, Event evt) {
-
+		private void DrawElements(Rect rect, Event evt)
+		{
 			//draw list background
 
-			if (showDefaultBackground && evt.type == EventType.Repaint) {
-
+			if(showDefaultBackground && evt.type == EventType.Repaint)
+			{
 				Style.boxBackground.Draw(rect, false, false, false, false);
 			}
 
 			//if not dragging, draw elements as usual
 
-			if (!dragging) {
-
+			if(!dragging)
+			{
 				int start, end;
 
 				pagination.GetVisibleRange(Length, out start, out end);
 
-				for (int i = start; i < end; i++) {
-
+				for(int i = start; i < end; i++)
+				{
 					bool selected = selection.Contains(i);
 
-					DrawElement(list.GetArrayElementAtIndex(i), GetElementDrawRect(i, elementRects[i]), selected, selected && GUIUtility.keyboardControl == controlID);
+					DrawElement(
+						list.GetArrayElementAtIndex(i), GetElementDrawRect(i, elementRects[i]), selected, selected && GUIUtility.keyboardControl == controlID
+					);
 				}
 			}
-			else if (evt.type == EventType.Repaint) {
-
+			else if(evt.type == EventType.Repaint)
+			{
 				//draw dragging elements only when repainting
 
 				int i, s, len = dragList.Length;
@@ -857,8 +941,8 @@ namespace Malee.List {
 
 				//first, find the rects of the selected elements, we need to use them for overlap queries
 
-				for (i = 0; i < sLen; i++) {
-
+				for(i = 0; i < sLen; i++)
+				{
 					DragElement element = dragList[i];
 
 					//update the element desiredRect if selected. Selected elements appear first in the dragList, so other elements later in iteration will have rects to compare
@@ -871,14 +955,14 @@ namespace Malee.List {
 
 				i = len;
 
-				while (--i > -1) {
-
+				while(--i > -1)
+				{
 					DragElement element = dragList[i];
 
 					//draw dragging elements last as the loop is backwards
 
-					if (element.selected) {
-
+					if(element.selected)
+					{
 						DrawElement(element.property, element.desiredRect, true, true);
 						continue;
 					}
@@ -893,12 +977,12 @@ namespace Malee.List {
 					int start = dragDirection > 0 ? sLen - 1 : 0;
 					int end = dragDirection > 0 ? -1 : sLen;
 
-					for (s = start; s != end; s -= dragDirection) {
-
+					for(s = start; s != end; s -= dragDirection)
+					{
 						DragElement selected = dragList[s];
 
-						if (selected.Overlaps(elementRect, elementIndex, dragDirection)) {
-
+						if(selected.Overlaps(elementRect, elementIndex, dragDirection))
+						{
 							elementRect.y -= selected.rect.height * dragDirection;
 							elementIndex += dragDirection;
 						}
@@ -916,8 +1000,8 @@ namespace Malee.List {
 			}
 		}
 
-		private void DrawElement(SerializedProperty element, Rect rect, bool selected, bool focused) {
-
+		private void DrawElement(SerializedProperty element, Rect rect, bool selected, bool focused)
+		{
 			Rect backgroundRect = rect;
 
 #if UNITY_2019_3_OR_NEWER
@@ -926,17 +1010,17 @@ namespace Malee.List {
 #endif
 			Event evt = Event.current;
 
-			if (drawElementBackgroundCallback != null) {
-
+			if(drawElementBackgroundCallback != null)
+			{
 				drawElementBackgroundCallback(backgroundRect, element, null, selected, focused);
 			}
-			else if (evt.type == EventType.Repaint) {
-
+			else if(evt.type == EventType.Repaint)
+			{
 				Style.elementBackground.Draw(backgroundRect, false, selected, selected, focused);
 			}
 
-			if (evt.type == EventType.Repaint && draggable) {
-
+			if(evt.type == EventType.Repaint && draggable)
+			{
 				Style.draggingHandle.Draw(new Rect(rect.x + 5, rect.y + 6, 10, rect.height - (rect.height - 6)), false, false, false, false);
 			}
 
@@ -944,12 +1028,12 @@ namespace Malee.List {
 
 			Rect renderRect = GetElementRenderRect(element, rect);
 
-			if (drawElementCallback != null) {
-
+			if(drawElementCallback != null)
+			{
 				drawElementCallback(renderRect, element, label, selected, focused);
 			}
-			else {
-
+			else
+			{
 				EditorGUI.PropertyField(renderRect, element, label, true);
 			}
 
@@ -957,12 +1041,12 @@ namespace Malee.List {
 
 			int controlId = GUIUtility.GetControlID(label, FocusType.Passive, rect);
 
-			switch (evt.GetTypeForControl(controlId)) {
-
+			switch(evt.GetTypeForControl(controlId))
+			{
 				case EventType.ContextClick:
 
-					if (rect.Contains(evt.mousePosition)) {
-
+					if(rect.Contains(evt.mousePosition))
+					{
 						HandleSingleContextClick(evt, element);
 					}
 
@@ -970,25 +1054,25 @@ namespace Malee.List {
 			}
 		}
 
-		private GUIContent GetElementLabel(SerializedProperty element, bool allowElementLabel) {
-
-			if (!allowElementLabel) {
-
+		private GUIContent GetElementLabel(SerializedProperty element, bool allowElementLabel)
+		{
+			if(!allowElementLabel)
+			{
 				return GUIContent.none;
 			}
-			else if (getElementLabelCallback != null) {
-
+			else if(getElementLabelCallback != null)
+			{
 				return getElementLabelCallback(element);
 			}
 
 			string name;
 
-			if (getElementNameCallback != null) {
-
+			if(getElementNameCallback != null)
+			{
 				name = getElementNameCallback(element);
 			}
-			else {
-
+			else
+			{
 				name = GetElementName(element, elementNameProperty, elementNameOverride);
 			}
 
@@ -999,17 +1083,17 @@ namespace Malee.List {
 			return elementLabel;
 		}
 
-		private static string GetElementName(SerializedProperty element, string nameProperty, string nameOverride) {
-
-			if (!string.IsNullOrEmpty(nameOverride)) {
-
+		private static string GetElementName(SerializedProperty element, string nameProperty, string nameOverride)
+		{
+			if(!string.IsNullOrEmpty(nameOverride))
+			{
 				string path = element.propertyPath;
 
 				const string arrayEndDelimeter = "]";
 				const char arrayStartDelimeter = '[';
 
-				if (path.EndsWith(arrayEndDelimeter)) {
-
+				if(path.EndsWith(arrayEndDelimeter))
+				{
 					int startIndex = path.LastIndexOf(arrayStartDelimeter) + 1;
 
 					return string.Format("{0} {1}", nameOverride, path.Substring(startIndex, path.Length - startIndex - 1));
@@ -1017,21 +1101,21 @@ namespace Malee.List {
 
 				return nameOverride;
 			}
-			else if (string.IsNullOrEmpty(nameProperty)) {
-
+			else if(string.IsNullOrEmpty(nameProperty))
+			{
 				return null;
 			}
-			else if (element.propertyType == SerializedPropertyType.ObjectReference && nameProperty == "name") {
-
+			else if(element.propertyType == SerializedPropertyType.ObjectReference && nameProperty == "name")
+			{
 				return element.objectReferenceValue ? element.objectReferenceValue.name : null;
 			}
 
 			SerializedProperty prop = element.FindPropertyRelative(nameProperty);
 
-			if (prop != null) {
-
-				switch (prop.propertyType) {
-
+			if(prop != null)
+			{
+				switch(prop.propertyType)
+				{
 					case SerializedPropertyType.ObjectReference:
 
 						return prop.objectReferenceValue ? prop.objectReferenceValue.name : null;
@@ -1064,26 +1148,26 @@ namespace Malee.List {
 			return null;
 		}
 
-		private static string GetLayerMaskName(int mask) {
-
-			if (mask == 0) {
-
+		private static string GetLayerMaskName(int mask)
+		{
+			if(mask == 0)
+			{
 				return "Nothing";
 			}
-			else if (mask < 0) {
-
+			else if(mask < 0)
+			{
 				return "Everything";
 			}
 
 			string name = string.Empty;
 			int n = 0;
 
-			for (int i = 0; i < 32; i++) {
-
-				if (((1 << i) & mask) != 0) {
-
-					if (n == 4) {
-
+			for(int i = 0; i < 32; i++)
+			{
+				if(((1 << i) & mask) != 0)
+				{
+					if(n == 4)
+					{
 						return "Mixed ...";
 					}
 
@@ -1095,16 +1179,16 @@ namespace Malee.List {
 			return name;
 		}
 
-		private void DrawFooter(Rect rect) {
-
-			if (drawFooterCallback != null) {
-
+		private void DrawFooter(Rect rect)
+		{
+			if(drawFooterCallback != null)
+			{
 				drawFooterCallback(rect);
 				return;
 			}
 
-			if (Event.current.type == EventType.Repaint) {
-
+			if(Event.current.type == EventType.Repaint)
+			{
 				Style.footerBackground.Draw(rect, false, false, false, false);
 			}
 
@@ -1113,18 +1197,18 @@ namespace Malee.List {
 
 			EditorGUI.BeginDisabledGroup(!canAdd);
 
-			if (GUI.Button(addRect, onAddDropdownCallback != null ? Style.iconToolbarPlusMore : Style.iconToolbarPlus, Style.preButton)) {
-
-				if (onAddDropdownCallback != null) {
-
+			if(GUI.Button(addRect, onAddDropdownCallback != null ? Style.iconToolbarPlusMore : Style.iconToolbarPlus, Style.preButton))
+			{
+				if(onAddDropdownCallback != null)
+				{
 					onAddDropdownCallback(addRect, this);
 				}
-				else if (onAddCallback != null) {
-
+				else if(onAddCallback != null)
+				{
 					onAddCallback(this);
 				}
-				else {
-
+				else
+				{
 					AddItem();
 				}
 			}
@@ -1133,14 +1217,14 @@ namespace Malee.List {
 
 			EditorGUI.BeginDisabledGroup(!CanSelect(selection) || !canRemove || (onCanRemoveCallback != null && !onCanRemoveCallback(this)));
 
-			if (GUI.Button(subRect, Style.iconToolbarMinus, Style.preButton)) {
-
-				if (onRemoveCallback != null) {
-
+			if(GUI.Button(subRect, Style.iconToolbarMinus, Style.preButton))
+			{
+				if(onRemoveCallback != null)
+				{
 					onRemoveCallback(this);
 				}
-				else {
-
+				else
+				{
 					Remove(selection.ToArray());
 				}
 			}
@@ -1148,8 +1232,8 @@ namespace Malee.List {
 			EditorGUI.EndDisabledGroup();
 		}
 
-		private void DrawPaginationHeader(Rect rect) {
-
+		private void DrawPaginationHeader(Rect rect)
+		{
 			int total = Length;
 			int pages = pagination.GetPageCount(total);
 			int page = Mathf.Clamp(pagination.page, 0, pages - 1);
@@ -1157,8 +1241,8 @@ namespace Malee.List {
 			//some actions may have reduced the page count, so we need to check the current page against the clamped one
 			//if different, we need to change and repaint
 
-			if (page != pagination.page) {
-
+			if(page != pagination.page)
+			{
 				pagination.page = page;
 
 				HandleUtility.Repaint();
@@ -1168,8 +1252,8 @@ namespace Malee.List {
 			Rect popupRect = new Rect(prevRect.xMax, rect.y, 14f, rect.height - 1);
 			Rect nextRect = new Rect(popupRect.xMax, rect.y, 17f, rect.height - 1);
 
-			if (Event.current.type == EventType.Repaint) {
-
+			if(Event.current.type == EventType.Repaint)
+			{
 				Style.paginationHeader.Draw(rect, false, true, true, false);
 			}
 
@@ -1184,17 +1268,17 @@ namespace Malee.List {
 
 			//draw page buttons and page popup
 
-			if (GUI.Button(prevRect, Style.iconPagePrev, Style.preButtonStretch)) {
-
+			if(GUI.Button(prevRect, Style.iconPagePrev, Style.preButtonStretch))
+			{
 				pagination.page = Mathf.Max(0, pagination.page - 1);
 			}
 
-			if (EditorGUI.DropdownButton(popupRect, Style.iconPagePopup, FocusType.Passive, Style.preButtonStretch)) {
-
+			if(EditorGUI.DropdownButton(popupRect, Style.iconPagePopup, FocusType.Passive, Style.preButtonStretch))
+			{
 				GenericMenu menu = new GenericMenu();
 
-				for (int i = 0; i < pages; i++) {
-
+				for(int i = 0; i < pages; i++)
+				{
 					int pageIndex = i;
 
 					menu.AddItem(new GUIContent(string.Format("Page {0}", i + 1)), i == pagination.page, OnPageDropDownSelect, pageIndex);
@@ -1203,8 +1287,8 @@ namespace Malee.List {
 				menu.DropDown(popupRect);
 			}
 
-			if (GUI.Button(nextRect, Style.iconPageNext, Style.preButtonStretch)) {
-
+			if(GUI.Button(nextRect, Style.iconPageNext, Style.preButtonStretch))
+			{
 				pagination.page = Mathf.Min(pages - 1, pagination.page + 1);
 			}
 
@@ -1237,8 +1321,8 @@ namespace Malee.List {
 			EditorGUIUtility.labelWidth = 0;
 			EditorGUIUtility.SetIconSize(Vector2.zero);
 
-			if (EditorGUI.EndChangeCheck()) {
-
+			if(EditorGUI.EndChangeCheck())
+			{
 				pagination.customPageSize = Mathf.Clamp(newPageSize, 0, total);
 				pagination.page = Mathf.Min(pagination.GetPageCount(total) - 1, pagination.page);
 			}
@@ -1246,40 +1330,40 @@ namespace Malee.List {
 			EditorGUI.EndDisabledGroup();
 		}
 
-		private void OnPageDropDownSelect(object userData) {
-
+		private void OnPageDropDownSelect(object userData)
+		{
 			pagination.page = (int)userData;
 		}
 
-		private void DispatchChange() {
-
-			if (onChangedCallback != null) {
-
+		private void DispatchChange()
+		{
+			if(onChangedCallback != null)
+			{
 				onChangedCallback(this);
 			}
 		}
 
-		private void HandleSingleContextClick(Event evt, SerializedProperty element) {
-
+		private void HandleSingleContextClick(Event evt, SerializedProperty element)
+		{
 			selection.Select(IndexOf(element));
 
 			GenericMenu menu = new GenericMenu();
 
-			if (element.isInstantiatedPrefab) {
-
-				menu.AddItem(new GUIContent($"Revert { GetElementLabel(element, true).text } to Prefab"), false, selection.RevertValues, list);
+			if(element.isInstantiatedPrefab)
+			{
+				menu.AddItem(new GUIContent($"Revert {GetElementLabel(element, true).text} to Prefab"), false, selection.RevertValues, list);
 				menu.AddSeparator(string.Empty);
 			}
 
 			HandleSharedContextClick(evt, menu, "Duplicate Array Element", "Delete Array Element", "Move Array Element");
 		}
 
-		private void HandleMultipleContextClick(Event evt) {
-
+		private void HandleMultipleContextClick(Event evt)
+		{
 			GenericMenu menu = new GenericMenu();
 
-			if (selection.CanRevert(list)) {
-
+			if(selection.CanRevert(list))
+			{
 				menu.AddItem(new GUIContent("Revert Values to Prefab"), false, selection.RevertValues, list);
 				menu.AddSeparator(string.Empty);
 			}
@@ -1287,19 +1371,24 @@ namespace Malee.List {
 			HandleSharedContextClick(evt, menu, "Duplicate Array Elements", "Delete Array Elements", "Move Array Elements");
 		}
 
-		private void HandleSharedContextClick(Event evt, GenericMenu menu, string duplicateLabel, string deleteLabel, string moveLabel) {
-
+		private void HandleSharedContextClick(
+			Event evt,
+			GenericMenu menu,
+			string duplicateLabel,
+			string deleteLabel,
+			string moveLabel)
+		{
 			menu.AddItem(new GUIContent(duplicateLabel), false, HandleDuplicate, list);
 			menu.AddItem(new GUIContent(deleteLabel), false, HandleDelete, list);
 
-			if (doPagination) {
-
+			if(doPagination)
+			{
 				int pages = pagination.GetPageCount(Length);
 
-				if (pages > 1) {
-
-					for (int i = 0; i < pages; i++) {
-
+				if(pages > 1)
+				{
+					for(int i = 0; i < pages; i++)
+					{
 						string label = string.Format("{0}/Page {1}", moveLabel, i + 1);
 
 						menu.AddItem(new GUIContent(label), i == pagination.page, HandleMoveElement, i);
@@ -1312,8 +1401,8 @@ namespace Malee.List {
 			evt.Use();
 		}
 
-		private void HandleMoveElement(object userData) {
-
+		private void HandleMoveElement(object userData)
+		{
 			int toPage = (int)userData;
 			int fromPage = pagination.page;
 			int size = pagination.pageSize;
@@ -1327,8 +1416,8 @@ namespace Malee.List {
 
 			int overflow = 0;
 
-			for (int i = 0; i < selection.Length; i++) {
-
+			for(int i = 0; i < selection.Length; i++)
+			{
 				int desiredIndex = selection[i] + offset;
 
 				overflow = direction < 0 ? Mathf.Min(overflow, desiredIndex) : Mathf.Max(overflow, desiredIndex - total);
@@ -1348,8 +1437,8 @@ namespace Malee.List {
 
 			selection.Sort();
 
-			for (int i = 0; i < selection.Length; i++) {
-
+			for(int i = 0; i < selection.Length; i++)
+			{
 				int selIndex = selection[i];
 				int oldIndex = dragList.GetIndexFromSelection(selIndex);
 				int newIndex = Mathf.Clamp(selIndex + offset, 0, orderedList.Count);
@@ -1370,59 +1459,59 @@ namespace Malee.List {
 			HandleUtility.Repaint();
 		}
 
-		private void HandleDelete(object userData) {
-
+		private void HandleDelete(object userData)
+		{
 			selection.Delete(userData as SerializedProperty);
 
 			DispatchChange();
 		}
 
-		private void HandleDuplicate(object userData) {
-
+		private void HandleDuplicate(object userData)
+		{
 			selection.Duplicate(userData as SerializedProperty);
 
 			DispatchChange();
 		}
 
-		private void HandleDragAndDrop(Rect rect, Event evt) {
-
-			switch (evt.GetTypeForControl(dragDropControlID)) {
-
+		private void HandleDragAndDrop(Rect rect, Event evt)
+		{
+			switch(evt.GetTypeForControl(dragDropControlID))
+			{
 				case EventType.DragUpdated:
 				case EventType.DragPerform:
 
-					if (GUI.enabled && rect.Contains(evt.mousePosition)) {
-
+					if(GUI.enabled && rect.Contains(evt.mousePosition))
+					{
 						Object[] objectReferences = DragAndDrop.objectReferences;
 						Object[] references = new Object[1];
 
 						bool acceptDrag = false;
 
-						foreach (Object object1 in objectReferences) {
-
+						foreach(Object object1 in objectReferences)
+						{
 							references[0] = object1;
 							Object object2 = ValidateObjectDragAndDrop(references);
 
-							if (object2 != null) {
-
+							if(object2 != null)
+							{
 								DragAndDrop.visualMode = DragAndDropVisualMode.Copy;
 
-								if (evt.type == EventType.DragPerform) {
-
+								if(evt.type == EventType.DragPerform)
+								{
 									AppendDragAndDropValue(object2);
 
 									acceptDrag = true;
 									DragAndDrop.activeControlID = 0;
 								}
-								else {
-
+								else
+								{
 									DragAndDrop.activeControlID = dragDropControlID;
 								}
 							}
 						}
 
-						if (acceptDrag) {
-
+						if(acceptDrag)
+						{
 							GUI.changed = true;
 							DragAndDrop.AcceptDrag();
 						}
@@ -1432,8 +1521,8 @@ namespace Malee.List {
 
 				case EventType.DragExited:
 
-					if (GUI.enabled) {
-
+					if(GUI.enabled)
+					{
 						HandleUtility.Repaint();
 					}
 
@@ -1441,14 +1530,14 @@ namespace Malee.List {
 			}
 		}
 
-		private Object ValidateObjectDragAndDrop(Object[] references) {
-
-			if (onValidateDragAndDropCallback != null) {
-
+		private Object ValidateObjectDragAndDrop(Object[] references)
+		{
+			if(onValidateDragAndDropCallback != null)
+			{
 				return onValidateDragAndDropCallback(references, this);
 			}
-			else if (surrogate.HasType) {
-
+			else if(surrogate.HasType)
+			{
 				//if we have a surrogate type, then validate using the surrogate type rather than the list
 
 				return Internals.ValidateObjectDragAndDrop(references, null, surrogate.type, surrogate.exactType);
@@ -1457,22 +1546,22 @@ namespace Malee.List {
 			return Internals.ValidateObjectDragAndDrop(references, list, null, false);
 		}
 
-		private void AppendDragAndDropValue(Object obj) {
-
-			if (onAppendDragDropCallback != null) {
-
+		private void AppendDragAndDropValue(Object obj)
+		{
+			if(onAppendDragDropCallback != null)
+			{
 				onAppendDragDropCallback(obj, this);
 			}
-			else {
-
+			else
+			{
 				//check if we have a surrogate type. If so use that for appending
 
-				if (surrogate.HasType) {
-
+				if(surrogate.HasType)
+				{
 					surrogate.Invoke(AddItem(), obj, this);
 				}
-				else {
-
+				else
+				{
 					Internals.AppendDragAndDropValue(obj, list);
 				}
 			}
@@ -1480,12 +1569,12 @@ namespace Malee.List {
 			DispatchChange();
 		}
 
-		private void HandlePreSelection(Rect rect, Event evt) {
-
-			if (evt.type == EventType.MouseDrag && draggable && GUIUtility.hotControl == controlID) {
-
-				if (selection.Length > 0 && UpdateDragPosition(evt.mousePosition, rect, dragList)) {
-
+		private void HandlePreSelection(Rect rect, Event evt)
+		{
+			if(evt.type == EventType.MouseDrag && draggable && GUIUtility.hotControl == controlID)
+			{
+				if(selection.Length > 0 && UpdateDragPosition(evt.mousePosition, rect, dragList))
+				{
 					GUIUtility.keyboardControl = controlID;
 					dragging = true;
 				}
@@ -1494,22 +1583,22 @@ namespace Malee.List {
 			}
 		}
 
-		private void HandlePostSelection(Rect rect, Event evt) {
-
-			switch (evt.GetTypeForControl(controlID)) {
-
+		private void HandlePostSelection(Rect rect, Event evt)
+		{
+			switch(evt.GetTypeForControl(controlID))
+			{
 				case EventType.MouseDown:
 
-					if (rect.Contains(evt.mousePosition) && IsSelectionButton(evt)) {
-
+					if(rect.Contains(evt.mousePosition) && IsSelectionButton(evt))
+					{
 						int index = GetSelectionIndex(evt.mousePosition);
 
-						if (CanSelect(index)) {
-
+						if(CanSelect(index))
+						{
 							DoSelection(index, GUIUtility.keyboardControl == 0 || GUIUtility.keyboardControl == controlID || evt.button == 2, evt);
 						}
-						else {
-
+						else
+						{
 							selection.Clear();
 						}
 
@@ -1520,37 +1609,37 @@ namespace Malee.List {
 
 				case EventType.MouseUp:
 
-					if (!draggable) {
-
+					if(!draggable)
+					{
 						//select the single object if no selection modifier is being performed
 
 						selection.SelectWhenNoAction(pressIndex, evt);
 
-						if (onMouseUpCallback != null && IsPositionWithinElement(evt.mousePosition, selection.Last)) {
-
+						if(onMouseUpCallback != null && IsPositionWithinElement(evt.mousePosition, selection.Last))
+						{
 							onMouseUpCallback(this);
 						}
 					}
-					else if (GUIUtility.hotControl == controlID) {
-
+					else if(GUIUtility.hotControl == controlID)
+					{
 						evt.Use();
 
-						if (dragging) {
-
+						if(dragging)
+						{
 							dragging = false;
 
 							//move elements in list
 
 							ReorderDraggedElements(dragDirection, dragList.StartIndex, () => dragList.SortByPosition());
 						}
-						else {
-
+						else
+						{
 							//if we didn't drag, then select the original pressed object
 
 							selection.SelectWhenNoAction(pressIndex, evt);
 
-							if (onMouseUpCallback != null) {
-
+							if(onMouseUpCallback != null)
+							{
 								onMouseUpCallback(this);
 							}
 						}
@@ -1564,24 +1653,24 @@ namespace Malee.List {
 
 				case EventType.KeyDown:
 
-					if (GUIUtility.keyboardControl == controlID) {
-
-						if (evt.keyCode == KeyCode.DownArrow && !dragging) {
-
+					if(GUIUtility.keyboardControl == controlID)
+					{
+						if(evt.keyCode == KeyCode.DownArrow && !dragging)
+						{
 							selection.Select(Mathf.Min(selection.Last + 1, Length - 1));
 							evt.Use();
 						}
-						else if (evt.keyCode == KeyCode.UpArrow && !dragging) {
-
+						else if(evt.keyCode == KeyCode.UpArrow && !dragging)
+						{
 							selection.Select(Mathf.Max(selection.Last - 1, 0));
 							evt.Use();
 						}
-						else if (evt.keyCode == KeyCode.Escape && GUIUtility.hotControl == controlID) {
-
+						else if(evt.keyCode == KeyCode.Escape && GUIUtility.hotControl == controlID)
+						{
 							GUIUtility.hotControl = 0;
 
-							if (dragging) {
-
+							if(dragging)
+							{
 								dragging = false;
 								selection = beforeDragSelection;
 							}
@@ -1594,31 +1683,31 @@ namespace Malee.List {
 			}
 		}
 
-		private bool IsSelectionButton(Event evt) {
-
+		private bool IsSelectionButton(Event evt)
+		{
 			return evt.button == 0 || evt.button == 2;
 		}
 
-		private void DoSelection(int index, bool setKeyboardControl, Event evt) {
-
+		private void DoSelection(int index, bool setKeyboardControl, Event evt)
+		{
 			//append selections based on action, this may be a additive (ctrl) or range (shift) selection
 
-			if (multipleSelection) {
-
+			if(multipleSelection)
+			{
 				selection.AppendWithAction(pressIndex = index, evt);
 			}
-			else {
-
+			else
+			{
 				selection.Select(pressIndex = index);
 			}
 
-			if (onSelectCallback != null) {
-
+			if(onSelectCallback != null)
+			{
 				onSelectCallback(this);
 			}
 
-			if (draggable) {
-
+			if(draggable)
+			{
 				dragging = false;
 				dragPosition = pressPosition = evt.mousePosition.y;
 
@@ -1635,24 +1724,25 @@ namespace Malee.List {
 				GUIUtility.hotControl = controlID;
 			}
 
-			if (setKeyboardControl) {
-
+			if(setKeyboardControl)
+			{
 				GUIUtility.keyboardControl = controlID;
 			}
 
 			evt.Use();
 		}
 
-		private void UpdateDragList(float dragPosition, int start, int end) {
-
+		private void UpdateDragList(float dragPosition, int start, int end)
+		{
 			dragList.Resize(start, end - start);
 
-			for (int i = start; i < end; i++) {
-
+			for(int i = start; i < end; i++)
+			{
 				SerializedProperty property = list.GetArrayElementAtIndex(i);
 				Rect elementRect = elementRects[i];
 
-				DragElement dragElement = new DragElement() {
+				DragElement dragElement = new DragElement()
+				{
 					property = property,
 					dragOffset = dragPosition - elementRect.y,
 					rect = elementRect,
@@ -1670,8 +1760,8 @@ namespace Malee.List {
 			dragList.SortByIndex();
 		}
 
-		private bool UpdateDragPosition(Vector2 position, Rect bounds, DragList dragList) {
-
+		private bool UpdateDragPosition(Vector2 position, Rect bounds, DragList dragList)
+		{
 			//find new drag position
 
 			int startIndex = 0;
@@ -1682,8 +1772,8 @@ namespace Malee.List {
 
 			dragPosition = Mathf.Clamp(position.y, bounds.yMin + minOffset, bounds.yMax - maxOffset);
 
-			if (Mathf.Abs(dragPosition - pressPosition) > 1) {
-
+			if(Mathf.Abs(dragPosition - pressPosition) > 1)
+			{
 				dragDirection = (int)Mathf.Sign(dragPosition - pressPosition);
 				return true;
 			}
@@ -1691,32 +1781,34 @@ namespace Malee.List {
 			return false;
 		}
 
-		private void ReorderDraggedElements(int direction, int offset, System.Action sortList) {
-
+		private void ReorderDraggedElements(int direction, int offset, Action sortList)
+		{
 			//save the current expanded states on all elements. I don't see any other way to do this
 			//MoveArrayElement does not move the foldout states, so... fun.
 
 			dragList.RecordState();
 
-			if (sortList != null) {
-
+			if(sortList != null)
+			{
 				sortList();
 			}
 
-			selection.Sort((a, b) => {
+			selection.Sort(
+				(a, b) =>
+				{
+					int d1 = dragList.GetIndexFromSelection(a);
+					int d2 = dragList.GetIndexFromSelection(b);
 
-				int d1 = dragList.GetIndexFromSelection(a);
-				int d2 = dragList.GetIndexFromSelection(b);
-
-				return direction > 0 ? d1.CompareTo(d2) : d2.CompareTo(d1);
-			});
+					return direction > 0 ? d1.CompareTo(d2) : d2.CompareTo(d1);
+				}
+			);
 
 			//swap the selected elements in the List
 
 			int s = selection.Length;
 
-			while (--s > -1) {
-
+			while(--s > -1)
+			{
 				int newIndex = dragList.GetIndexFromSelection(selection[s]);
 				int listIndex = newIndex + offset;
 
@@ -1734,31 +1826,31 @@ namespace Malee.List {
 			ApplyReorder();
 		}
 
-		private void ApplyReorder() {
-
+		private void ApplyReorder()
+		{
 			list.serializedObject.ApplyModifiedProperties();
 			list.serializedObject.Update();
 
-			if (onReorderCallback != null) {
-
+			if(onReorderCallback != null)
+			{
 				onReorderCallback(this);
 			}
 
 			DispatchChange();
 		}
 
-		private int GetSelectionIndex(Vector2 position) {
-
+		private int GetSelectionIndex(Vector2 position)
+		{
 			int start, end;
 
 			pagination.GetVisibleRange(elementRects.Length, out start, out end);
 
-			for (int i = start; i < end; i++) {
-
+			for(int i = start; i < end; i++)
+			{
 				Rect rect = elementRects[i];
 
-				if (rect.Contains(position) || (i == 0 && position.y <= rect.yMin) || (i == end - 1 && position.y >= rect.yMax)) {
-
+				if(rect.Contains(position) || (i == 0 && position.y <= rect.yMin) || (i == end - 1 && position.y >= rect.yMax))
+				{
 					return i;
 				}
 			}
@@ -1766,30 +1858,30 @@ namespace Malee.List {
 			return -1;
 		}
 
-		private bool CanSelect(ListSelection selection) {
-
+		private bool CanSelect(ListSelection selection)
+		{
 			return selection.Length > 0 ? selection.All(s => CanSelect(s)) : false;
 		}
 
-		private bool CanSelect(int index) {
-
+		private bool CanSelect(int index)
+		{
 			return index >= 0 && index < Length;
 		}
 
-		private bool CanSelect(Vector2 position) {
-
+		private bool CanSelect(Vector2 position)
+		{
 			return selection.Length > 0 ? selection.Any(s => IsPositionWithinElement(position, s)) : false;
 		}
 
-		private bool IsPositionWithinElement(Vector2 position, int index) {
-
+		private bool IsPositionWithinElement(Vector2 position, int index)
+		{
 			return CanSelect(index) ? elementRects[index].Contains(position) : false;
 		}
 
-		private bool IsElementExpandable(SerializedProperty element) {
-
-			switch (elementDisplayType) {
-
+		private bool IsElementExpandable(SerializedProperty element)
+		{
+			switch(elementDisplayType)
+			{
 				case ElementDisplayType.Auto:
 
 					return element.hasVisibleChildren && IsTypeExpandable(element.propertyType);
@@ -1801,10 +1893,10 @@ namespace Malee.List {
 			return false;
 		}
 
-		private bool IsTypeExpandable(SerializedPropertyType type) {
-
-			switch (type) {
-
+		private bool IsTypeExpandable(SerializedPropertyType type)
+		{
+			switch(type)
+			{
 				case SerializedPropertyType.Generic:
 				case SerializedPropertyType.Vector4:
 				case SerializedPropertyType.Quaternion:
@@ -1824,8 +1916,8 @@ namespace Malee.List {
 		// -- LIST STYLE --
 		//
 
-		static class Style {
-
+		static class Style
+		{
 			internal const string PAGE_INFO_FORMAT = "{0} / {1}";
 
 			internal static GUIContent iconToolbarPlus;
@@ -1853,8 +1945,8 @@ namespace Malee.List {
 
 			internal static GUIContent listIcon;
 
-			static Style() {
-
+			static Style()
+			{
 				iconToolbarPlus = EditorGUIUtility.IconContent("Toolbar Plus", "Add to list");
 				iconToolbarPlusMore = EditorGUIUtility.IconContent("Toolbar Plus More", "Choose to add to list");
 				iconToolbarMinus = EditorGUIUtility.IconContent("Toolbar Minus", "Remove selection from list");
@@ -1939,95 +2031,115 @@ namespace Malee.List {
 		// -- DRAG LIST --
 		//
 
-		struct DragList {
-
+		struct DragList
+		{
 			private int startIndex;
 			private DragElement[] elements;
 			private int length;
 
-			internal DragList(int length) {
-
+			internal DragList(int length)
+			{
 				this.length = length;
 
 				startIndex = 0;
 				elements = new DragElement[length];
 			}
 
-			internal int StartIndex {
-
-				get { return startIndex; }
+			internal int StartIndex
+			{
+				get
+				{
+					return startIndex;
+				}
 			}
 
-			internal int Length {
-
-				get { return length; }
+			internal int Length
+			{
+				get
+				{
+					return length;
+				}
 			}
 
-			internal DragElement[] Elements {
-
-				get { return elements; }
-				set { elements = value; }
+			internal DragElement[] Elements
+			{
+				get
+				{
+					return elements;
+				}
+				set
+				{
+					elements = value;
+				}
 			}
 
-			internal DragElement this[int index] {
-
-				get { return elements[index]; }
-				set { elements[index] = value; }
+			internal DragElement this[int index]
+			{
+				get
+				{
+					return elements[index];
+				}
+				set
+				{
+					elements[index] = value;
+				}
 			}
 
-			internal void Resize(int start, int length) {
-
+			internal void Resize(int start, int length)
+			{
 				startIndex = start;
 
 				this.length = length;
 
-				if (elements.Length != length) {
-
-					System.Array.Resize(ref elements, length);
+				if(elements.Length != length)
+				{
+					Array.Resize(ref elements, length);
 				}
 			}
 
-			internal void SortByIndex() {
+			internal void SortByIndex()
+			{
+				Array.Sort(
+					elements, (a, b) =>
+					{
+						if(b.selected)
+						{
+							return a.selected ? a.startIndex.CompareTo(b.startIndex) : 1;
+						}
+						else if(a.selected)
+						{
+							return b.selected ? b.startIndex.CompareTo(a.startIndex) : -1;
+						}
 
-				System.Array.Sort(elements, (a, b) => {
-
-					if (b.selected) {
-
-						return a.selected ? a.startIndex.CompareTo(b.startIndex) : 1;
+						return a.startIndex.CompareTo(b.startIndex);
 					}
-					else if (a.selected) {
-
-						return b.selected ? b.startIndex.CompareTo(a.startIndex) : -1;
-					}
-
-					return a.startIndex.CompareTo(b.startIndex);
-				});
+				);
 			}
 
-			internal void RecordState() {
-
-				for (int i = 0; i < length; i++) {
-
+			internal void RecordState()
+			{
+				for(int i = 0; i < length; i++)
+				{
 					elements[i].RecordState();
 				}
 			}
 
-			internal void RestoreState(SerializedProperty list) {
-
-				for (int i = 0; i < length; i++) {
-
+			internal void RestoreState(SerializedProperty list)
+			{
+				for(int i = 0; i < length; i++)
+				{
 					elements[i].RestoreState(list.GetArrayElementAtIndex(i + startIndex));
 				}
 			}
 
-			internal void SortByPosition() {
-
-				System.Array.Sort(elements, (a, b) => a.desiredRect.center.y.CompareTo(b.desiredRect.center.y));
+			internal void SortByPosition()
+			{
+				Array.Sort(elements, (a, b) => a.desiredRect.center.y.CompareTo(b.desiredRect.center.y));
 			}
 
-			internal int GetIndexFromSelection(int index) {
-
-				return System.Array.FindIndex(elements, t => t.startIndex == index);
+			internal int GetIndexFromSelection(int index)
+			{
+				return Array.FindIndex(elements, t => t.startIndex == index);
 			}
 		}
 
@@ -2035,8 +2147,8 @@ namespace Malee.List {
 		// -- DRAG ELEMENT --
 		//
 
-		struct DragElement {
-
+		struct DragElement
+		{
 			internal SerializedProperty property;
 			internal int startIndex;
 			internal float dragOffset;
@@ -2047,52 +2159,46 @@ namespace Malee.List {
 			private bool isExpanded;
 			private Dictionary<int, bool> states;
 
-			internal bool Overlaps(Rect value, int index, int direction) {
-
-				if (direction < 0 && index < startIndex) {
-
+			internal bool Overlaps(Rect value, int index, int direction)
+			{
+				if(direction < 0 && index < startIndex)
+				{
 					return desiredRect.yMin < value.center.y;
 				}
-				else if (direction > 0 && index > startIndex) {
-
+				else if(direction > 0 && index > startIndex)
+				{
 					return desiredRect.yMax > value.center.y;
 				}
 
 				return false;
 			}
 
-			internal void RecordState() {
-
+			internal void RecordState()
+			{
 				states = new Dictionary<int, bool>();
 				isExpanded = property.isExpanded;
 
-				Iterate(this, property, (DragElement e, SerializedProperty p, int index) => {
-
-					e.states[index] = p.isExpanded;
-				});
+				Iterate(this, property, (DragElement e, SerializedProperty p, int index) => { e.states[index] = p.isExpanded; });
 			}
 
-			internal void RestoreState(SerializedProperty property) {
-
+			internal void RestoreState(SerializedProperty property)
+			{
 				property.isExpanded = isExpanded;
 
-				Iterate(this, property, (DragElement e, SerializedProperty p, int index) => {
-
-					p.isExpanded = e.states[index];
-				});
+				Iterate(this, property, (DragElement e, SerializedProperty p, int index) => { p.isExpanded = e.states[index]; });
 			}
 
-			private static void Iterate(DragElement element, SerializedProperty property, System.Action<DragElement, SerializedProperty, int> action) {
-
+			private static void Iterate(DragElement element, SerializedProperty property, Action<DragElement, SerializedProperty, int> action)
+			{
 				SerializedProperty copy = property.Copy();
 				SerializedProperty end = copy.GetEndProperty();
 
 				int index = 0;
 
-				while (copy.NextVisible(true) && !SerializedProperty.EqualContents(copy, end)) {
-
-					if (copy.hasVisibleChildren) {
-
+				while(copy.NextVisible(true) && !SerializedProperty.EqualContents(copy, end))
+				{
+					if(copy.hasVisibleChildren)
+					{
 						action(element, copy, index);
 						index++;
 					}
@@ -2104,44 +2210,44 @@ namespace Malee.List {
 		// -- SLIDE GROUP --
 		//
 
-		class SlideGroup {
-
+		class SlideGroup
+		{
 			private Dictionary<int, Rect> animIDs;
 
-			public SlideGroup() {
-
+			public SlideGroup()
+			{
 				animIDs = new Dictionary<int, Rect>();
 			}
 
-			public Rect GetRect(int id, Rect r, float easing) {
-
-				if (Event.current.type != EventType.Repaint) {
-
+			public Rect GetRect(int id, Rect r, float easing)
+			{
+				if(Event.current.type != EventType.Repaint)
+				{
 					return r;
 				}
 
-				if (!animIDs.ContainsKey(id)) {
-
+				if(!animIDs.ContainsKey(id))
+				{
 					animIDs.Add(id, r);
 					return r;
 				}
-				else {
-
+				else
+				{
 					Rect rect = animIDs[id];
 
-					if (rect.y != r.y) {
-
+					if(rect.y != r.y)
+					{
 						float delta = r.y - rect.y;
 						float absDelta = Mathf.Abs(delta);
 
 						//if the distance between current rect and target is too large, then move the element towards the target rect so it reaches the destination faster
 
-						if (absDelta > (rect.height * 2)) {
-
+						if(absDelta > (rect.height * 2))
+						{
 							r.y = delta > 0 ? r.y - rect.height : r.y + rect.height;
 						}
-						else if (absDelta > 0.5) {
-
+						else if(absDelta > 0.5)
+						{
 							r.y = Mathf.Lerp(rect.y, r.y, easing);
 						}
 
@@ -2153,14 +2259,14 @@ namespace Malee.List {
 				}
 			}
 
-			public Rect SetRect(int id, Rect rect) {
-
-				if (animIDs.ContainsKey(id)) {
-
+			public Rect SetRect(int id, Rect rect)
+			{
+				if(animIDs.ContainsKey(id))
+				{
 					animIDs[id] = rect;
 				}
-				else {
-
+				else
+				{
 					animIDs.Add(id, rect);
 				}
 
@@ -2172,49 +2278,55 @@ namespace Malee.List {
 		// -- PAGINATION --
 		//
 
-		struct Pagination {
-
+		struct Pagination
+		{
 			internal bool enabled;
 			internal int fixedPageSize;
 			internal int customPageSize;
 			internal int page;
 
-			internal bool usePagination {
-
-				get { return enabled && pageSize > 0; }
+			internal bool usePagination
+			{
+				get
+				{
+					return enabled && pageSize > 0;
+				}
 			}
 
-			internal int pageSize {
-
-				get { return fixedPageSize > 0 ? fixedPageSize : customPageSize; }
+			internal int pageSize
+			{
+				get
+				{
+					return fixedPageSize > 0 ? fixedPageSize : customPageSize;
+				}
 			}
 
-			internal int GetVisibleLength(int total) {
-
+			internal int GetVisibleLength(int total)
+			{
 				int start, end;
 
-				if (GetVisibleRange(total, out start, out end)) {
-
+				if(GetVisibleRange(total, out start, out end))
+				{
 					return end - start;
 				}
 
 				return total;
 			}
 
-			internal int GetPageForIndex(int index) {
-
+			internal int GetPageForIndex(int index)
+			{
 				return usePagination ? Mathf.FloorToInt(index / (float)pageSize) : 0;
 			}
 
-			internal int GetPageCount(int total) {
-
+			internal int GetPageCount(int total)
+			{
 				return usePagination ? Mathf.CeilToInt(total / (float)pageSize) : 1;
 			}
 
-			internal bool GetVisibleRange(int total, out int start, out int end) {
-
-				if (usePagination) {
-
+			internal bool GetVisibleRange(int total, out int start, out int end)
+			{
+				if(usePagination)
+				{
 					int size = pageSize;
 
 					start = Mathf.Clamp(page * size, 0, total - 1);
@@ -2232,155 +2344,185 @@ namespace Malee.List {
 		// -- SELECTION --
 		//
 
-		class ListSelection : IEnumerable<int> {
+		class ListSelection : IEnumerable<int>
+		{
+			internal int? firstSelected;
 
 			private List<int> indexes;
 
-			internal int? firstSelected;
-
-			public ListSelection() {
-
+			public ListSelection()
+			{
 				indexes = new List<int>();
 			}
 
-			public ListSelection(int[] indexes) {
-
+			public ListSelection(int[] indexes)
+			{
 				this.indexes = new List<int>(indexes);
 			}
 
-			public int First {
-
-				get { return indexes.Count > 0 ? indexes[0] : -1; }
+			public int First
+			{
+				get
+				{
+					return indexes.Count > 0 ? indexes[0] : -1;
+				}
 			}
 
-			public int Last {
-
-				get { return indexes.Count > 0 ? indexes[indexes.Count - 1] : -1; }
+			public int Last
+			{
+				get
+				{
+					return indexes.Count > 0 ? indexes[indexes.Count - 1] : -1;
+				}
 			}
 
-			public int Length {
-
-				get { return indexes.Count; }
+			public int Length
+			{
+				get
+				{
+					return indexes.Count;
+				}
 			}
 
-			public int this[int index] {
-
-				get { return indexes[index]; }
-				set {
-
+			public int this[int index]
+			{
+				get
+				{
+					return indexes[index];
+				}
+				set
+				{
 					int oldIndex = indexes[index];
 
 					indexes[index] = value;
 
-					if (oldIndex == firstSelected) {
-
+					if(oldIndex == firstSelected)
+					{
 						firstSelected = value;
 					}
 				}
 			}
 
-			public bool Contains(int index) {
+#region IEnumerable Implementation
 
+			IEnumerator IEnumerable.GetEnumerator()
+			{
+				return ((IEnumerable<int>)indexes).GetEnumerator();
+			}
+
+#endregion
+
+#region IEnumerable<int> Implementation
+
+			public IEnumerator<int> GetEnumerator()
+			{
+				return ((IEnumerable<int>)indexes).GetEnumerator();
+			}
+
+#endregion
+
+			public bool Contains(int index)
+			{
 				return indexes.Contains(index);
 			}
 
-			public void Clear() {
-
+			public void Clear()
+			{
 				indexes.Clear();
 				firstSelected = null;
 			}
 
-			public void SelectWhenNoAction(int index, Event evt) {
-
-				if (!EditorGUI.actionKey && !evt.shift) {
-
+			public void SelectWhenNoAction(int index, Event evt)
+			{
+				if(!EditorGUI.actionKey && !evt.shift)
+				{
 					Select(index);
 				}
 			}
 
-			public void Select(int index) {
-
+			public void Select(int index)
+			{
 				indexes.Clear();
 				indexes.Add(index);
 
 				firstSelected = index;
 			}
 
-			public void Remove(int index) {
-
-				if (indexes.Contains(index)) {
-
+			public void Remove(int index)
+			{
+				if(indexes.Contains(index))
+				{
 					indexes.Remove(index);
 				}
 			}
 
-			public void AppendWithAction(int index, Event evt) {
-
-				if (EditorGUI.actionKey) {
-
-					if (Contains(index)) {
-
+			public void AppendWithAction(int index, Event evt)
+			{
+				if(EditorGUI.actionKey)
+				{
+					if(Contains(index))
+					{
 						Remove(index);
 					}
-					else {
-
+					else
+					{
 						Append(index);
 						firstSelected = index;
 					}
 				}
-				else if (evt.shift && indexes.Count > 0 && firstSelected.HasValue) {
-
+				else if(evt.shift && indexes.Count > 0 && firstSelected.HasValue)
+				{
 					indexes.Clear();
 
 					AppendRange(firstSelected.Value, index);
 				}
-				else if (!Contains(index)) {
-
+				else if(!Contains(index))
+				{
 					Select(index);
 				}
 			}
 
-			public void Sort() {
-
-				if (indexes.Count > 0) {
-
+			public void Sort()
+			{
+				if(indexes.Count > 0)
+				{
 					indexes.Sort();
 				}
 			}
 
-			public void Sort(System.Comparison<int> comparison) {
-
-				if (indexes.Count > 0) {
-
+			public void Sort(Comparison<int> comparison)
+			{
+				if(indexes.Count > 0)
+				{
 					indexes.Sort(comparison);
 				}
 			}
 
-			public int[] ToArray() {
-
+			public int[] ToArray()
+			{
 				return indexes.ToArray();
 			}
 
-			public ListSelection Clone() {
-
+			public ListSelection Clone()
+			{
 				ListSelection clone = new ListSelection(ToArray());
 				clone.firstSelected = firstSelected;
 
 				return clone;
 			}
 
-			internal void Trim(int min, int max) {
-
+			internal void Trim(int min, int max)
+			{
 				int i = indexes.Count;
 
-				while (--i > -1) {
-
+				while(--i > -1)
+				{
 					int index = indexes[i];
 
-					if (index < min || index >= max) {
-
-						if (index == firstSelected && i > 0) {
-
+					if(index < min || index >= max)
+					{
+						if(index == firstSelected && i > 0)
+						{
 							firstSelected = indexes[i - 1];
 						}
 
@@ -2389,14 +2531,14 @@ namespace Malee.List {
 				}
 			}
 
-			internal bool CanRevert(SerializedProperty list) {
-
-				if (list.serializedObject.targetObjects.Length == 1) {
-
-					for (int i = 0; i < Length; i++) {
-
-						if (list.GetArrayElementAtIndex(this[i]).isInstantiatedPrefab) {
-
+			internal bool CanRevert(SerializedProperty list)
+			{
+				if(list.serializedObject.targetObjects.Length == 1)
+				{
+					for(int i = 0; i < Length; i++)
+					{
+						if(list.GetArrayElementAtIndex(this[i]).isInstantiatedPrefab)
+						{
 							return true;
 						}
 					}
@@ -2405,16 +2547,16 @@ namespace Malee.List {
 				return false;
 			}
 
-			internal void RevertValues(object userData) {
-
+			internal void RevertValues(object userData)
+			{
 				SerializedProperty list = userData as SerializedProperty;
 
-				for (int i = 0; i < Length; i++) {
-
+				for(int i = 0; i < Length; i++)
+				{
 					SerializedProperty property = list.GetArrayElementAtIndex(this[i]);
 
-					if (property.isInstantiatedPrefab) {
-
+					if(property.isInstantiatedPrefab)
+					{
 						property.prefabOverride = false;
 					}
 				}
@@ -2425,12 +2567,12 @@ namespace Malee.List {
 				HandleUtility.Repaint();
 			}
 
-			internal void Duplicate(SerializedProperty list) {
-
+			internal void Duplicate(SerializedProperty list)
+			{
 				int offset = 0;
 
-				for (int i = 0; i < Length; i++) {
-
+				for(int i = 0; i < Length; i++)
+				{
 					this[i] += offset;
 
 					list.GetArrayElementAtIndex(this[i]).DuplicateCommand();
@@ -2443,14 +2585,14 @@ namespace Malee.List {
 				HandleUtility.Repaint();
 			}
 
-			internal void Delete(SerializedProperty list) {
-
+			internal void Delete(SerializedProperty list)
+			{
 				Sort();
 
 				int i = Length;
 
-				while (--i > -1) {
-
+				while(--i > -1)
+				{
 					list.GetArrayElementAtIndex(this[i]).DeleteCommand();
 				}
 
@@ -2462,37 +2604,27 @@ namespace Malee.List {
 				HandleUtility.Repaint();
 			}
 
-			private void Append(int index) {
-
-				if (index >= 0 && !indexes.Contains(index)) {
-
+			private void Append(int index)
+			{
+				if(index >= 0 && !indexes.Contains(index))
+				{
 					indexes.Add(index);
 				}
 			}
 
-			private void AppendRange(int from, int to) {
-
+			private void AppendRange(int from, int to)
+			{
 				int dir = (int)Mathf.Sign(to - from);
 
-				if (dir != 0) {
-
-					for (int i = from; i != to; i += dir) {
-
+				if(dir != 0)
+				{
+					for(int i = from; i != to; i += dir)
+					{
 						Append(i);
 					}
 				}
 
 				Append(to);
-			}
-
-			public IEnumerator<int> GetEnumerator() {
-
-				return ((IEnumerable<int>)indexes).GetEnumerator();
-			}
-
-			IEnumerator IEnumerable.GetEnumerator() {
-
-				return ((IEnumerable<int>)indexes).GetEnumerator();
 			}
 		}
 
@@ -2500,69 +2632,71 @@ namespace Malee.List {
 		// -- SORTING --
 		//
 
-		static class ListSort {
+		static class ListSort
+		{
+			internal static void SortOnProperty(SerializedProperty list, int length, bool descending, string propertyName)
+			{
+				BubbleSort(
+					list, length, (p1, p2) =>
+					{
+						SerializedProperty a = p1.FindPropertyRelative(propertyName);
+						SerializedProperty b = p2.FindPropertyRelative(propertyName);
 
-			private delegate int SortComparision(SerializedProperty p1, SerializedProperty p2);
+						if(a != null && b != null && a.propertyType == b.propertyType)
+						{
+							int comparison = Compare(a, b, descending, a.propertyType);
 
-			internal static void SortOnProperty(SerializedProperty list, int length, bool descending, string propertyName) {
+							return descending ? -comparison : comparison;
+						}
 
-				BubbleSort(list, length, (p1, p2) => {
-
-					SerializedProperty a = p1.FindPropertyRelative(propertyName);
-					SerializedProperty b = p2.FindPropertyRelative(propertyName);
-
-					if (a != null && b != null && a.propertyType == b.propertyType) {
-
-						int comparison = Compare(a, b, descending, a.propertyType);
-
-						return descending ? -comparison : comparison;
+						return 0;
 					}
-
-					return 0;
-				});
+				);
 			}
 
-			internal static void SortOnType(SerializedProperty list, int length, bool descending, SerializedPropertyType type) {
+			internal static void SortOnType(SerializedProperty list, int length, bool descending, SerializedPropertyType type)
+			{
+				BubbleSort(
+					list, length, (p1, p2) =>
+					{
+						int comparision = Compare(p1, p2, descending, type);
 
-				BubbleSort(list, length, (p1, p2) => {
-
-					int comparision = Compare(p1, p2, descending, type);
-
-					return descending ? -comparision : comparision;
-				});
+						return descending ? -comparision : comparision;
+					}
+				);
 			}
 
 			//
 			// -- PRIVATE --
 			//
 
-			private static void BubbleSort(SerializedProperty list, int length, SortComparision comparision) {
-
-				for (int i = 0; i < length; i++) {
-
+			private static void BubbleSort(SerializedProperty list, int length, SortComparision comparision)
+			{
+				for(int i = 0; i < length; i++)
+				{
 					SerializedProperty p1 = list.GetArrayElementAtIndex(i);
 
-					for (int j = i + 1; j < length; j++) {
-
+					for(int j = i + 1; j < length; j++)
+					{
 						SerializedProperty p2 = list.GetArrayElementAtIndex(j);
 
-						if (comparision(p1, p2) > 0) {
-
+						if(comparision(p1, p2) > 0)
+						{
 							list.MoveArrayElement(j, i);
 						}
 					}
 				}
 			}
 
-			private static int Compare(SerializedProperty p1, SerializedProperty p2, bool descending, SerializedPropertyType type) {
-
-				if (p1 == null || p2 == null) {
-
+			private static int Compare(SerializedProperty p1, SerializedProperty p2, bool descending, SerializedPropertyType type)
+			{
+				if(p1 == null || p2 == null)
+				{
 					return 0;
 				}
 
-				switch (type) {
-
+				switch(type)
+				{
 					case SerializedPropertyType.Boolean:
 
 						return p1.boolValue.CompareTo(p2.boolValue);
@@ -2600,44 +2734,40 @@ namespace Malee.List {
 				}
 			}
 
-			private static int CompareObjects(Object obj1, Object obj2, bool descending) {
-
-				if (obj1 && obj2) {
-
+			private static int CompareObjects(Object obj1, Object obj2, bool descending)
+			{
+				if(obj1 && obj2)
+				{
 					return obj1.name.CompareTo(obj2.name);
 				}
-				else if (obj1) {
-
+				else if(obj1)
+				{
 					return descending ? 1 : -1;
 				}
 
 				return descending ? -1 : 1;
 			}
+
+			private delegate int SortComparision(SerializedProperty p1, SerializedProperty p2);
 		}
 
 		//
 		// -- SURROGATE --
 		//
 
-		public struct Surrogate {
-
-			public System.Type type;
+		public struct Surrogate
+		{
+			public Type type;
 			public bool exactType;
 			public SurrogateCallback callback;
 
 			internal bool enabled;
 
-			public bool HasType {
+			public Surrogate(Type type)
+				: this(type, null) { }
 
-				get { return enabled && type != null; }
-			}
-
-			public Surrogate(System.Type type)
-				: this(type, null) {
-			}
-
-			public Surrogate(System.Type type, SurrogateCallback callback) {
-
+			public Surrogate(Type type, SurrogateCallback callback)
+			{
 				this.type = type;
 				this.callback = callback;
 
@@ -2645,10 +2775,18 @@ namespace Malee.List {
 				exactType = false;
 			}
 
-			public void Invoke(SerializedProperty element, Object objectReference, ReorderableList list) {
+			public bool HasType
+			{
+				get
+				{
+					return enabled && type != null;
+				}
+			}
 
-				if (element != null && callback != null) {
-
+			public void Invoke(SerializedProperty element, Object objectReference, ReorderableList list)
+			{
+				if(element != null && callback != null)
+				{
 					callback.Invoke(element, objectReference, list);
 				}
 			}
@@ -2658,37 +2796,36 @@ namespace Malee.List {
 		// -- EXCEPTIONS --
 		//
 
-		class InvalidListException : System.InvalidOperationException {
-
-			public InvalidListException() : base("ReorderableList serializedProperty must be an array") {
-			}
+		class InvalidListException : InvalidOperationException
+		{
+			public InvalidListException() : base("ReorderableList serializedProperty must be an array") { }
 		}
 
-		class MissingListExeption : System.ArgumentNullException {
-
-			public MissingListExeption() : base("ReorderableList serializedProperty is null") {
-			}
+		class MissingListExeption : ArgumentNullException
+		{
+			public MissingListExeption() : base("ReorderableList serializedProperty is null") { }
 		}
 
 		//
 		// -- INTERNAL --
 		//
 
-		static class Internals {
-
+		static class Internals
+		{
 			private static MethodInfo dragDropValidation;
 			private static object[] dragDropValidationParams;
 			private static MethodInfo appendDragDrop;
 			private static object[] appendDragDropParams;
 
-			static Internals() {
-
-				dragDropValidation = System.Type.GetType("UnityEditor.EditorGUI, UnityEditor").GetMethod("ValidateObjectFieldAssignment", BindingFlags.NonPublic | BindingFlags.Static);
+			static Internals()
+			{
+				dragDropValidation = Type.GetType("UnityEditor.EditorGUI, UnityEditor")
+										 .GetMethod("ValidateObjectFieldAssignment", BindingFlags.NonPublic | BindingFlags.Static);
 				appendDragDrop = typeof(SerializedProperty).GetMethod("AppendFoldoutPPtrValue", BindingFlags.NonPublic | BindingFlags.Instance);
 			}
 
-			internal static Object ValidateObjectDragAndDrop(Object[] references, SerializedProperty property, System.Type type, bool exactType) {
-
+			internal static Object ValidateObjectDragAndDrop(Object[] references, SerializedProperty property, Type type, bool exactType)
+			{
 #if UNITY_2017_1_OR_NEWER
 				dragDropValidationParams = GetParams(ref dragDropValidationParams, 4);
 				dragDropValidationParams[0] = references;
@@ -2704,17 +2841,17 @@ namespace Malee.List {
 				return dragDropValidation.Invoke(null, dragDropValidationParams) as Object;
 			}
 
-			internal static void AppendDragAndDropValue(Object obj, SerializedProperty list) {
-
+			internal static void AppendDragAndDropValue(Object obj, SerializedProperty list)
+			{
 				appendDragDropParams = GetParams(ref appendDragDropParams, 1);
 				appendDragDropParams[0] = obj;
 				appendDragDrop.Invoke(list, appendDragDropParams);
 			}
 
-			private static object[] GetParams(ref object[] parameters, int count) {
-
-				if (parameters == null) {
-
+			private static object[] GetParams(ref object[] parameters, int count)
+			{
+				if(parameters == null)
+				{
 					parameters = new object[count];
 				}
 
@@ -2723,4 +2860,3 @@ namespace Malee.List {
 		}
 	}
 }
-
