@@ -33,36 +33,23 @@ namespace Fp.ProjectTwiner
 		private const string StorePathKey = PrefixPrefs + "StorePath";
 		private const string TwinCloneDirName = "ProjectTwins";
 
-		//TODO: Manage this in editor window
-		private static readonly string[] RealCopyPath =
+		private static readonly string[] DefaultRealCopyPath =
 		{
 			//Directories
-			//"Library/cache/",
 			"Library/Artifacts/",
-			//"Library/metadata/",
-			//"Library/ShaderCache/",
-			//"Library/ScriptAssemblies/",
 			//Files
-			//"Library/MonoManager.asset",
-			//"Library/assetDatabase3",
-			//"Library/ShaderCache.db",
-			//"Library/AssetImportState",
-			//"Packages/packages-lock.json",
 			"Library/ArtifactDB",
 			"Library/SourceAssetsDB"
 		};
 
-		//TODO: Manage this in editor window
-		private static readonly string[] SymlinkPath =
+		private static readonly string[] DefaultSymlinkPath =
 		{
 			//Directories
 			"Assets/",
 			"Packages/",
 			"GooglePackages/",
-			//"Library/PackageCache/",
 			"ProjectSettings/Packages/",
 			//Files
-			//"Packages/manifest.json",
 			"ProjectSettings/ProjectVersion.txt",
 			"ProjectSettings/AudioManager.asset",
 			"ProjectSettings/ClusterInputManager.asset",
@@ -81,7 +68,6 @@ namespace Fp.ProjectTwiner
 			"ProjectSettings/UnityConnectSettings.asset",
 			"ProjectSettings/VFXManager.asset",
 			"ProjectSettings/XRSettings.asset"
-			//"ProjectSettings/UnityConnectSettings.asset",
 		};
 
 		private ReorderableList _additionalSymlinkProp;
@@ -645,7 +631,7 @@ namespace Fp.ProjectTwiner
 
 				EditorGUILayout.LabelField(nameof(Guid), _newProjectSettings.TwinGuid.ToString("N"));
 				EditorGUILayout.PropertyField(_serializedObject.FindProperty(nameof(TwinProjectSettings.FilterByGitignore)));
-
+				
 				DrawPath(_serializedObject.FindProperty(nameof(TwinProjectSettings.StorePath)));
 
 				//Draw real copy path list
@@ -700,8 +686,8 @@ namespace Fp.ProjectTwiner
 			_newProjectSettings.SymlinkPath.Clear();
 			_newProjectSettings.RealCopyPath.Clear();
 
-			_newProjectSettings.SymlinkPath.AddRange(SymlinkPath.Select(s => new LockedString { Readonly = true, Value = s }));
-			_newProjectSettings.RealCopyPath.AddRange(RealCopyPath.Select(s => new LockedString { Readonly = true, Value = s }));
+			_newProjectSettings.SymlinkPath.AddRange(DefaultSymlinkPath.Select(s => new LockedString { Readonly = false, Value = s }));
+			_newProjectSettings.RealCopyPath.AddRange(DefaultRealCopyPath.Select(s => new LockedString { Readonly = false, Value = s }));
 
 			_newProjectSettings.TwinGuid = Guid.NewGuid();
 			_newProjectSettings.FilterByGitignore = true;
@@ -807,7 +793,7 @@ namespace Fp.ProjectTwiner
 			internal Guid TwinGuid;
 
 			[SerializeField]
-			internal bool FilterByGitignore = true;
+			internal bool FilterByGitignore = false;
 
 			[SerializeField]
 			internal string StorePath;

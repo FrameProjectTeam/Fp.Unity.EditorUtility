@@ -49,7 +49,11 @@ namespace Fp.ProjectTwiner
 									.Select(l => l.Trim())
 									.Where(l => !string.IsNullOrWhiteSpace(l) && !l.StartsWith("#"))
 									.Aggregate(
-										new List<string>[2] { new List<string>(), new List<string>() }, (lists, s) =>
+										new[]
+										{
+											new List<string>(),
+											new List<string>()
+										}, (lists, s) =>
 										{
 											bool isNegative = s[0] == '!';
 											if(isNegative)
@@ -81,7 +85,11 @@ namespace Fp.ProjectTwiner
 												   .OrderBy(s => s)
 												   .Select(PrepareRegexes)
 												   .Aggregate(
-													   new List<string>[2] { new List<string>(), new List<string>() }, (lists, strings) =>
+													   new[]
+													   {
+														   new List<string>(), 
+														   new List<string>()
+													   }, (lists, strings) =>
 													   {
 														   lists[0].Add(strings[0]);
 														   lists[1].Add(strings[1]);
@@ -120,7 +128,7 @@ namespace Fp.ProjectTwiner
 
 		private static string[] PrepareRegexes(string pattern)
 		{
-			return new string[2]
+			return new[]
 			{
 				// exact regex
 				PrepareRegexPattern(pattern),
