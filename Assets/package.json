@@ -6,8 +6,5 @@
   "unity": "2019.1",
   "keywords": ["Editor", "Utility", "Git", "Lod"],
   "author": { "name": "Frame Project", "email": "Yevhenii.Vitiuk@gmail.com"},
-  "license": "MIT",
-  "dependencies": {
-    "com.malee.reorderablelist": "https://github.com/cfoulston/Unity-Reorderable-List.git"
-  }
+  "license": "MIT"
 }
