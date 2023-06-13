@@ -39,8 +39,10 @@ namespace Fp.ProjectTwiner
 			"Library/Artifacts/",
 			//Files
 			"Library/ArtifactDB",
-			"Library/SourceAssetsDB"
+			"Library/SourceAssetsDB",
 		};
+
+		private static readonly string ProjectSettingsPath = "ProjectSettings/ProjectSettings.asset";
 
 		private static readonly string[] DefaultSymlinkPath =
 		{
@@ -48,26 +50,8 @@ namespace Fp.ProjectTwiner
 			"Assets/",
 			"Packages/",
 			"GooglePackages/",
-			"ProjectSettings/Packages/",
 			//Files
-			"ProjectSettings/ProjectVersion.txt",
-			"ProjectSettings/AudioManager.asset",
-			"ProjectSettings/ClusterInputManager.asset",
-			"ProjectSettings/DynamicsManager.asset",
-			"ProjectSettings/EditorBuildSettings.asset",
-			"ProjectSettings/EditorSettings.asset",
-			"ProjectSettings/GraphicsSettings.asset",
-			"ProjectSettings/InputManager.asset",
-			"ProjectSettings/NavMeshAreas.asset",
-			"ProjectSettings/NetworkManager.asset",
-			"ProjectSettings/Physics2DSettings.asset",
-			"ProjectSettings/PresetManager.asset",
-			"ProjectSettings/QualitySettings.asset",
-			"ProjectSettings/TagManager.asset",
-			"ProjectSettings/TimeManager.asset",
-			"ProjectSettings/UnityConnectSettings.asset",
-			"ProjectSettings/VFXManager.asset",
-			"ProjectSettings/XRSettings.asset"
+			"ProjectSettings/"
 		};
 
 		private ReorderableList _additionalSymlinkProp;
@@ -131,105 +115,127 @@ namespace Fp.ProjectTwiner
 			_serializedObject.ApplyModifiedProperties();
 		}
 
-		private static DirectoryInfo GetCurrentProjectDirectory()
+		private static string GetCurrentProjectDirectory()
 		{
-			return new DirectoryInfo(Directory.GetCurrentDirectory());
+			return Directory.GetCurrentDirectory();
 		}
 
 		private static bool CreateClone(TwinProjectSettings twinSettings, TwinProjectCache twinProjectCache)
 		{
 			var twinId = Guid.NewGuid();
 
-			DirectoryInfo originalDirectoryInfo = GetCurrentProjectDirectory();
-
-			var symlinkPath = new List<string>(twinSettings.SymlinkPath.Select(p => p.Value));
-			var realCopyPath = new List<string>(twinSettings.RealCopyPath.Select(p => p.Value));
-
+			string projectPath = GetCurrentProjectDirectory();
 			string twinPath = GetTwinPath(twinSettings.StorePath, twinId);
 
-			var twinProjectDir = new DirectoryInfo(twinPath);
-			if(!twinProjectDir.Exists)
+			if(!Directory.Exists(twinPath))
 			{
-				twinProjectDir.Create();
+				Directory.CreateDirectory(twinPath);
 			}
-
+			
 			var symlinkCommand = new SymlinkCommandBuilder();
 
+			GitIgnoreRegex realCopyIgnoreRegex = GitIgnoreRegex.ParseGitIgnoreRules(twinSettings.RealCopyPath.Where(p => p.Enabled).Select(p => $"!{p.Value}").Concat(new[] {"*"}).ToArray());
+			GitIgnoreRegex symlinkIgnoreRegex;
+			
 			if(twinSettings.FilterByGitignore)
 			{
-				var ignoreFile = new FileInfo(Path.Combine(originalDirectoryInfo.FullName, GitIgnoreFileName));
-				if(ignoreFile.Exists)
+				var ignoreFile = new FileInfo(Path.Combine(projectPath, GitIgnoreFileName));
+				if(!ignoreFile.Exists)
 				{
-					GitIgnoreRegex ignoreRegex = GitIgnoreRegex.Parse(ignoreFile);
-
-					//Symlinks directories
-					foreach(DirectoryInfo directoryInfo in originalDirectoryInfo.GetDirectories())
-					{
-						string relativePath = PathUtils.MakeRelativePath(originalDirectoryInfo.FullName, directoryInfo.FullName) + '/';
-
-						if(relativePath.Contains("ProjectSettings"))
-						{
-							continue;
-						}
-
-						if(ignoreRegex != null)
-						{
-							if(ignoreRegex.Denies(relativePath))
-							{
-								continue;
-							}
-						}
-
-						symlinkPath.Add(relativePath);
-					}
-
-					//Symlinks files 
-					foreach(FileInfo fileInfo in originalDirectoryInfo.GetFiles())
-					{
-						string relativePath = PathUtils.MakeRelativePath(originalDirectoryInfo.FullName, fileInfo.FullName);
-
-						if(ignoreRegex != null)
-						{
-							if(ignoreRegex.Denies(relativePath))
-							{
-								continue;
-							}
-						}
-
-						symlinkPath.Add(relativePath);
-					}
+					Debug.LogError("Cant copy project to twin. Gitignore file not found");
+					return false;
 				}
-				else
+
+				symlinkIgnoreRegex = GitIgnoreRegex.ParseGitIgnore(ignoreFile);
+
+				if(symlinkIgnoreRegex == null)
 				{
-					if(!EditorUtility.DisplayDialog("Warning", $"File \"{GitIgnoreFileName}\" not found", SkipButtonText, CancelButtonText))
-					{
-						return false;
-					}
+					Debug.LogError("Cant copy project to twin. Invalid parse process gitignore file");
+					return false;
 				}
 			}
+			else
+			{
+				symlinkIgnoreRegex = GitIgnoreRegex.ParseGitIgnoreRules(
+					twinSettings.SymlinkPath.Where(p => p.Enabled).Select(p => $"!{p.Value}").Concat(new[] { "*" }).ToArray()
+				);
+			}
+			
+			var symlinkPath = new List<string>();
+			var realCopyPath = new List<string>();
+			
+			var pathQueue = new Queue<string>();
 
+			pathQueue.Enqueue(projectPath);
+			while(pathQueue.TryDequeue(out string curPath))
+			{
+				//Symlinks directories
+				foreach(string directoryInfo in Directory.GetDirectories(curPath))
+				{
+					string relativePath = PathUtils.MakeRelativePath(projectPath, directoryInfo) + Path.AltDirectorySeparatorChar;
+
+					if(realCopyIgnoreRegex.Includes(relativePath))
+					{
+						realCopyPath.Add(relativePath);
+						continue;
+					}
+					
+					if(realCopyIgnoreRegex.MaybeIncludes(relativePath))
+					{
+						pathQueue.Enqueue(directoryInfo);
+						continue;
+					}
+					
+					if(symlinkIgnoreRegex.Ignores(relativePath))
+					{
+						continue;
+					}
+
+					symlinkPath.Add(relativePath);
+				}
+
+				//Symlinks files 
+				foreach(string filePath in Directory.GetFiles(curPath))
+				{
+					string relativePath = PathUtils.MakeRelativePath(projectPath, filePath);
+
+					if(realCopyIgnoreRegex.Includes(relativePath))
+					{
+						realCopyPath.Add(relativePath);
+						continue;
+					}
+						
+					if(symlinkIgnoreRegex.Ignores(relativePath))
+					{
+						continue;
+					}
+
+					symlinkPath.Add(relativePath);
+				}
+			}
+			
 			foreach(string path in symlinkPath)
 			{
 				if(PathUtils.IsDirectoryPath(path))
 				{
 					var targetDir = new DirectoryInfo(PathUtils.FixDirPath(Path.Combine(twinPath, path)));
-					if(targetDir.Parent != null && !targetDir.Parent.Exists)
+					if(targetDir.Parent is { Exists: false })
 					{
 						targetDir.Parent.Create();
 					}
 
-					symlinkCommand.AddDirectory(PathUtils.FixDirPath(Path.Combine(originalDirectoryInfo.FullName, path)), targetDir.FullName);
+					symlinkCommand.AddDirectory(PathUtils.FixDirPath(Path.Combine(projectPath, path)), targetDir.FullName);
 				}
 				else
 				{
 					var targetDir = new FileInfo(PathUtils.FixDirPath(Path.Combine(twinPath, path)));
-					if(targetDir.Directory?.Parent != null && !targetDir.Directory.Parent.Exists)
+					if(targetDir.Directory?.Parent is { Exists: false })
 					{
 						targetDir.Directory.Parent.Create();
 					}
 
 					symlinkCommand.AddFile(
-						PathUtils.FixPath(Path.Combine(originalDirectoryInfo.FullName, path)),
+						PathUtils.FixPath(Path.Combine(projectPath, path)),
 						PathUtils.FixPath(Path.Combine(twinPath, path))
 					);
 				}
@@ -251,18 +257,18 @@ namespace Fp.ProjectTwiner
 				EditorUtility.ClearProgressBar();
 			}
 
-			UpdateProjectSettingsFile(originalDirectoryInfo, twinProjectDir, twinId);
+			UpdateProjectSettingsFile(projectPath, twinPath, twinId);
 
 			foreach(string subPath in realCopyPath)
 			{
 				if(PathUtils.IsDirectoryPath(subPath))
 				{
-					RealCopySubdirectory(originalDirectoryInfo, twinProjectDir, subPath);
+					RealCopySubdirectory(projectPath, twinPath, subPath);
 				}
 				else
 				{
-					string sourcePath = Path.Combine(originalDirectoryInfo.FullName, subPath);
-					string destinationPath = Path.Combine(twinProjectDir.FullName, subPath);
+					string sourcePath = Path.Combine(projectPath, subPath);
+					string destinationPath = Path.Combine(twinPath, subPath);
 
 					if(!File.Exists(sourcePath))
 					{
@@ -285,17 +291,16 @@ namespace Fp.ProjectTwiner
 			return true;
 		}
 
-		private static bool UpdateProjectSettingsFile(DirectoryInfo originalDirInfo, DirectoryInfo twinDirInfo, Guid twinId)
+		private static bool UpdateProjectSettingsFile(string projectPath, string twinPath, Guid twinId)
 		{
-			const string projSettingFilePath = "ProjectSettings/ProjectSettings.asset";
-			string sourcePath = Path.Combine(originalDirInfo.FullName, projSettingFilePath);
+			string sourcePath = Path.Combine(projectPath, ProjectSettingsPath);
 
 			if(!File.Exists(sourcePath))
 			{
 				return false;
 			}
 
-			string destinationPath = Path.Combine(twinDirInfo.FullName, projSettingFilePath);
+			string destinationPath = Path.Combine(twinPath, ProjectSettingsPath);
 			string sourceSettings = File.ReadAllText(sourcePath);
 
 			string newSettings = Regex.Replace(sourceSettings, @"productName: (.+)$", $"productName: $1 [{twinId:N}]", RegexOptions.Multiline);
@@ -411,7 +416,7 @@ namespace Fp.ProjectTwiner
 							if(GUILayout.Button("Refresh settings"))
 							{
 								UpdateProjectSettingsFile(
-									GetCurrentProjectDirectory(), new DirectoryInfo(twinProjectRecord.FullPath), Guid.Parse(twinProjectRecord.Guid)
+									GetCurrentProjectDirectory(), twinProjectRecord.FullPath, Guid.Parse(twinProjectRecord.Guid)
 								);
 							}
 
@@ -637,7 +642,10 @@ namespace Fp.ProjectTwiner
 				//Draw real copy path list
 				_realCopyProp.DoLayoutList();
 				//Draw additional symlink path list
-				_additionalSymlinkProp.DoLayoutList();
+				if(!_newProjectSettings.FilterByGitignore)
+				{
+					_additionalSymlinkProp.DoLayoutList();
+				}
 
 				if(GUILayout.Button("Make Twin"))
 				{
@@ -686,8 +694,9 @@ namespace Fp.ProjectTwiner
 			_newProjectSettings.SymlinkPath.Clear();
 			_newProjectSettings.RealCopyPath.Clear();
 
-			_newProjectSettings.SymlinkPath.AddRange(DefaultSymlinkPath.Select(s => new LockedString { Readonly = false, Value = s }));
-			_newProjectSettings.RealCopyPath.AddRange(DefaultRealCopyPath.Select(s => new LockedString { Readonly = false, Value = s }));
+			_newProjectSettings.SymlinkPath.AddRange(DefaultSymlinkPath.Select(s => new LockedString { Enabled = true, Readonly = false, Value = s }));
+			_newProjectSettings.RealCopyPath.AddRange(DefaultRealCopyPath.Select(s => new LockedString { Enabled = true, Readonly = false, Value = s }));
+			_newProjectSettings.RealCopyPath.Add(new LockedString { Enabled = true, Readonly = true, Value = ProjectSettingsPath });
 
 			_newProjectSettings.TwinGuid = Guid.NewGuid();
 			_newProjectSettings.FilterByGitignore = true;
@@ -709,13 +718,13 @@ namespace Fp.ProjectTwiner
 			process.Dispose();
 		}
 
-		private static bool RealCopySubdirectory(DirectoryInfo originalProjectDir, DirectoryInfo twinProjectDir, string subDirectory)
+		private static bool RealCopySubdirectory(string path, string twinPath, string subDirectory)
 		{
 			try
 			{
 				//Copy library
-				string sourcePath = Path.Combine(originalProjectDir.FullName, subDirectory);
-				string destinationPath = Path.Combine(twinProjectDir.FullName, subDirectory);
+				string sourcePath = Path.Combine(path, subDirectory);
+				string destinationPath = Path.Combine(twinPath, subDirectory);
 
 				if(!Directory.Exists(sourcePath) || Directory.Exists(destinationPath))
 				{
@@ -808,6 +817,7 @@ namespace Fp.ProjectTwiner
 		[Serializable]
 		internal struct LockedString
 		{
+			public bool Enabled;
 			public bool Readonly;
 			public string Value;
 		}
@@ -831,7 +841,10 @@ namespace Fp.ProjectTwiner
 
 		private ReorderableList CreateReorderableList(SerializedProperty property)
 		{
-			var list = new ReorderableList(property);
+			var list = new ReorderableList(property)
+			{
+				expandable = false
+			};
 
 			list.getElementHeightCallback += OnCalculateElementHeight;
 			list.drawElementCallback += OnDrawElementCallback;
@@ -870,6 +883,7 @@ namespace Fp.ProjectTwiner
 			bool selected,
 			bool focused)
 		{
+			SerializedProperty isEnabled = element.FindPropertyRelative(nameof(LockedString.Enabled));
 			SerializedProperty locked = element.FindPropertyRelative(nameof(LockedString.Readonly));
 			SerializedProperty value = element.FindPropertyRelative(nameof(LockedString.Value));
 
@@ -893,6 +907,16 @@ namespace Fp.ProjectTwiner
 
 			GUI.enabled = !locked.boolValue;
 
+			//Set witdh for checkbox
+			Rect checkBoxWidth = rect;
+			checkBoxWidth.width = EditorGUIUtility.singleLineHeight;
+			
+			EditorGUI.PropertyField(checkBoxWidth, isEnabled, GUIContent.none);
+
+			rect.width -= checkBoxWidth.width;
+			rect.x += checkBoxWidth.width;
+			
+			GUI.enabled = !locked.boolValue && isEnabled.boolValue;
 			EditorGUI.PropertyField(rect, value, new GUIContent(tag));
 
 			GUI.enabled = cachedEnabledStatus;

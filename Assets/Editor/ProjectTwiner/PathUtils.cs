@@ -101,7 +101,7 @@ namespace Fp.ProjectTwiner
 				throw new ArgumentOutOfRangeException(nameof(length), length, "Length is less than zero");
 			}
 
-			return length < value.Length ? value.Substring(value.Length - length) : value;
+			return length < value.Length ? value[^length..] : value;
 		}
 
 		public static string MakeRelativePath(string basePath, string targetPath)
@@ -112,12 +112,12 @@ namespace Fp.ProjectTwiner
 			// this is the easy case.  The file is inside of the working directory.
 			if(targetPath.StartsWith(basePath))
 			{
-				return targetPath.Substring(basePath.Length + 1);
+				return targetPath[(basePath.Length + 1)..];
 			}
 
 			// the hard case has to back out of the working directory
-			string[] baseDirs = basePath.Split(':', '\\', '/');
-			string[] fileDirs = targetPath.Split(':', '\\', '/');
+			string[] baseDirs = basePath.Split(':', Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+			string[] fileDirs = targetPath.Split(':', Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
 			// if we failed to split (empty strings?) or the drive letter does not match
 			if(baseDirs.Length <= 0 || fileDirs.Length <= 0 || baseDirs[0] != fileDirs[0])
@@ -138,17 +138,17 @@ namespace Fp.ProjectTwiner
 			// back out of the working directory
 			for(var i = 0; i < baseDirs.Length - offset; i++)
 			{
-				result += "..\\";
+				result += ".." + Path.AltDirectorySeparatorChar;
 			}
 
 			// step into the file path
 			for(int i = offset; i < fileDirs.Length - 1; i++)
 			{
-				result += fileDirs[i] + "\\";
+				result += fileDirs[i] + Path.AltDirectorySeparatorChar;
 			}
 
 			// append the file
-			result += fileDirs[fileDirs.Length - 1];
+			result += fileDirs[^1];
 
 			return result;
 		}

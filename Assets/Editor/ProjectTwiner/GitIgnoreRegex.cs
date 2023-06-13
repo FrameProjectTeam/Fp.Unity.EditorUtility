@@ -6,116 +6,127 @@ using System.Text.RegularExpressions;
 
 namespace Fp.ProjectTwiner
 {
-	public class GitIgnoreRegex
+	public sealed class GitIgnoreRegex
 	{
-		private readonly Regex[] _positives;
-		private readonly Regex[] _negatives;
+		private readonly RegExGroup _group;
 
-		private GitIgnoreRegex(Regex[] positives, Regex[] negatives)
+		private GitIgnoreRegex(RegExGroup regExGroup)
 		{
-			_positives = positives;
-			_negatives = negatives;
+			_group = regExGroup;
 		}
 
-		public bool Accepts(string path)
+		public bool Includes(string path)
 		{
-			path = SliceRelative(path);
+			path = SliceRelative(FixPathSeparator(path));
 
-			return _negatives[0].IsMatch(path) || !_positives[0].IsMatch(path);
+			return _group.ForceInclude.Exact.IsMatch(path) || !_group.Exclude.Exact.IsMatch(path);
 		}
 
-		public bool Denies(string path)
+		public bool Ignores(string path)
 		{
-			path = SliceRelative(path);
-
-			return !(_negatives[0].IsMatch(path) || !_positives[0].IsMatch(path));
+			return !Includes(path);
 		}
 
-		public bool Maybe(string path)
+		public bool MaybeIncludes(string path)
 		{
-			path = SliceRelative(path);
+			path = SliceRelative(FixPathSeparator(path));
 
-			return _negatives[1].IsMatch(path) || !_positives[1].IsMatch(path);
+			return _group.ForceInclude.Partial.IsMatch(path) || !_group.Exclude.Partial.IsMatch(path);
 		}
 
-		public static GitIgnoreRegex Parse(FileInfo ignoreFile)
+		public static GitIgnoreRegex ParseGitIgnoreRules(params string[] rules)
 		{
-			if(ignoreFile == null || !ignoreFile.Exists)
+			RegExPair[] pattern = rules
+								  .Select(l => l.Trim())
+								  .Where(l => !string.IsNullOrWhiteSpace(l) && !l.StartsWith("#"))
+								  .Aggregate(
+									  new[]
+									  {
+										  new List<string>(),
+										  new List<string>()
+									  }, (lists, s) =>
+									  {
+										  bool isNegative = s[0] == '!';
+										  if(isNegative)
+										  {
+											  s = s.Substring(1, s.Length - 1);
+										  }
+
+										  if(s[0] == '/')
+										  {
+											  s = s.Substring(1, s.Length - 1);
+										  }
+
+										  if(isNegative)
+										  {
+											  lists[1].Add(s);
+										  }
+										  else
+										  {
+											  lists[0].Add(s);
+										  }
+
+										  return lists;
+									  }
+								  )
+								  .Select(
+									  list =>
+									  {
+										  return list
+												 .OrderBy(s => s)
+												 .Select(PrepareRegexes)
+												 .Aggregate(
+													 new[]
+													 {
+														 new List<string>(),
+														 new List<string>()
+													 }, (lists, strings) =>
+													 {
+														 lists[0].Add(strings[0]);
+														 lists[1].Add(strings[1]);
+
+														 return lists;
+													 }
+												 );
+									  }
+								  )
+								  .Select(
+									  lists =>
+									  {
+										  var regxPair = new RegExPair
+										  {
+											  Exact = lists[0].Count > 0 ? new Regex($"^(({string.Join(")|(", lists[0])}))") : new Regex("$^"),
+											  Partial = lists[1].Count > 0 ? new Regex($"^(({string.Join(")|(", lists[1])}))") : new Regex("$^")
+										  };
+										  return regxPair;
+									  }
+								  )
+								  .ToArray();
+			
+			var group = new RegExGroup
+			{
+				Exclude = pattern[0],
+				ForceInclude = pattern[1]
+			};
+
+			return new GitIgnoreRegex(group);
+		}
+
+		public static GitIgnoreRegex ParseGitIgnore(FileInfo ignoreFile)
+		{
+			if(ignoreFile is not { Exists: true })
 			{
 				throw new ArgumentException(nameof(ignoreFile));
 			}
 
-			Regex[][] pattern = File.ReadAllLines(ignoreFile.FullName)
-									.Select(l => l.Trim())
-									.Where(l => !string.IsNullOrWhiteSpace(l) && !l.StartsWith("#"))
-									.Aggregate(
-										new[]
-										{
-											new List<string>(),
-											new List<string>()
-										}, (lists, s) =>
-										{
-											bool isNegative = s[0] == '!';
-											if(isNegative)
-											{
-												s = s.Substring(1, s.Length - 1);
-											}
-
-											if(s[0] == '/')
-											{
-												s = s.Substring(1, s.Length - 1);
-											}
-
-											if(isNegative)
-											{
-												lists[1].Add(s);
-											}
-											else
-											{
-												lists[0].Add(s);
-											}
-
-											return lists;
-										}
-									)
-									.Select(
-										list =>
-										{
-											return list
-												   .OrderBy(s => s)
-												   .Select(PrepareRegexes)
-												   .Aggregate(
-													   new[]
-													   {
-														   new List<string>(), 
-														   new List<string>()
-													   }, (lists, strings) =>
-													   {
-														   lists[0].Add(strings[0]);
-														   lists[1].Add(strings[1]);
-
-														   return lists;
-													   }
-												   );
-										}
-									)
-									.Select(
-										lists =>
-										{
-											var regx = new Regex[2];
-											regx[0] = lists[0].Count > 0 ? new Regex($"^(({string.Join(")|(", lists[0])}))") : new Regex("$^");
-											regx[1] = lists[1].Count > 0 ? new Regex($"^(({string.Join(")|(", lists[1])}))") : new Regex("$^");
-											return regx;
-										}
-									)
-									.ToArray();
-
-			Regex[] positives = pattern[0];
-			Regex[] negatives = pattern[1];
-
-			return new GitIgnoreRegex(positives, negatives);
+			return ParseGitIgnoreRules(File.ReadAllLines(ignoreFile.FullName));
 		}
 
+		private static string FixPathSeparator(string path)
+		{
+			return path.Replace("\\", "/");
+		}
+		
 		private static string SliceRelative(string path)
 		{
 			if(path.StartsWith("/"))
@@ -153,6 +164,18 @@ namespace Fp.ProjectTwiner
 		private static string EscapeRegex(string pattern)
 		{
 			return Regex.Replace(pattern, @"[\-\/\{\}\(\)\+\?\.\\\^\$\|]", "\\$&");
+		}
+
+		private struct RegExGroup
+		{
+			public RegExPair Exclude;
+			public RegExPair ForceInclude;
+		}
+
+		private struct RegExPair
+		{
+			public Regex Exact;
+			public Regex Partial;
 		}
 	}
 }
