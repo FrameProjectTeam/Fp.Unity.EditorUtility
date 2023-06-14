@@ -12,6 +12,11 @@ namespace Fp.ProjectTwiner
 			return path.EndsWith("/") || path.EndsWith("\\");
 		}
 
+		public static string TrimDirectoryPath(string path)
+		{
+			return path.TrimEnd('/', '\\');
+		}
+		
 		public static string FixPath(string path)
 		{
 			return path.Replace("\\", "/");

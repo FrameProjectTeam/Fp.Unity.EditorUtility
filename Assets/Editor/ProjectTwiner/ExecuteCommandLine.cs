@@ -9,7 +9,7 @@ namespace Fp.ProjectTwiner
 
 		static ExecuteCommandLine()
 		{
-			Instance = new ExecuteCommandLine();
+			Instance = new ExecuteCommandLine(true);
 		}
 
 		public ExecuteCommandLine(bool runAsAdmin = false) : base(runAsAdmin) { }

@@ -28,8 +28,13 @@ namespace Fp.ProjectTwiner
 
 			var stringBuilder = new StringBuilder();
 
-			stringBuilder.AppendLine("@echo");
+			if(debug)
+			{
+				stringBuilder.AppendLine("@echo");
+			}
+
 			stringBuilder.AppendLine(stringCommand);
+			
 			if(debug)
 			{
 				stringBuilder.AppendLine("pause");

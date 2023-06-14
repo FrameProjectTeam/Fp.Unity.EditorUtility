@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
+using Fp.ProjectTwiner.Utility;
 using Fp.ProjectTwiner.Utility.ReorderableList.Editor;
 
 using UnityEditor;
@@ -31,8 +32,7 @@ namespace Fp.ProjectTwiner
 
 		private const string PrefixPrefs = "TE_";
 		private const string StorePathKey = PrefixPrefs + "StorePath";
-		private const string TwinCloneDirName = "ProjectTwins";
-
+		
 		private static readonly string[] DefaultRealCopyPath =
 		{
 			//Directories
@@ -122,16 +122,13 @@ namespace Fp.ProjectTwiner
 
 		private static bool CreateClone(TwinProjectSettings twinSettings, TwinProjectCache twinProjectCache)
 		{
-			var twinId = Guid.NewGuid();
-
 			string projectPath = GetCurrentProjectDirectory();
-			string twinPath = GetTwinPath(twinSettings.StorePath, twinId);
-
-			if(!Directory.Exists(twinPath))
-			{
-				Directory.CreateDirectory(twinPath);
-			}
 			
+			if(!GenerateTwinPath(twinSettings.StorePath, twinProjectCache, out string twinName, out string twinPath))
+			{
+				return false;
+			}
+
 			var symlinkCommand = new SymlinkCommandBuilder();
 
 			GitIgnoreRegex realCopyIgnoreRegex = GitIgnoreRegex.ParseGitIgnoreRules(twinSettings.RealCopyPath.Where(p => p.Enabled).Select(p => $"!{p.Value}").Concat(new[] {"*"}).ToArray());
@@ -257,7 +254,7 @@ namespace Fp.ProjectTwiner
 				EditorUtility.ClearProgressBar();
 			}
 
-			UpdateProjectSettingsFile(projectPath, twinPath, twinId);
+			UpdateProjectSettingsFile(projectPath, twinPath, twinName);
 
 			foreach(string subPath in realCopyPath)
 			{
@@ -282,7 +279,7 @@ namespace Fp.ProjectTwiner
 			twinProjectCache.Records.Add(
 				new TwinProjectCache.TwinProjectRecord
 				{
-					Guid = twinId.ToString("N"),
+					Pseudonym = twinName,
 					FullPath = twinPath,
 					RealCopyPaths = realCopyPath.ToArray(),
 					SymlinksPaths = symlinkCommand.GetSymlinkSource()
@@ -291,7 +288,41 @@ namespace Fp.ProjectTwiner
 			return true;
 		}
 
-		private static bool UpdateProjectSettingsFile(string projectPath, string twinPath, Guid twinId)
+		private static bool GenerateTwinPath(string storePath, TwinProjectCache twinCache, out string twinName, out string twinPath)
+		{
+			IReadOnlyList<string> alphabet = TextUtility.GreekAlphabet;
+			
+			int startIdx = UnityEngine.Random.Range(0, alphabet.Count);
+			var retryCount = 0;
+
+			do
+			{
+				twinName = alphabet[(startIdx + retryCount) % alphabet.Count];
+				twinPath = GetTwinPath(storePath, twinName);
+
+				if(Directory.Exists(twinPath) || twinCache.HasPseudo(twinName))
+				{
+					continue;
+				}
+
+				try
+				{
+					Directory.CreateDirectory(twinPath);
+					return true;
+				}
+				catch(Exception e)
+				{
+					Debug.LogException(e);
+					return false;
+				}
+			}
+			while(++retryCount < alphabet.Count);
+
+			Debug.LogError("Failed to generate twin path, too many twin already exist");
+			return false;
+		}
+
+		private static bool UpdateProjectSettingsFile(string projectPath, string twinPath, string twinName)
 		{
 			string sourcePath = Path.Combine(projectPath, ProjectSettingsPath);
 
@@ -303,7 +334,7 @@ namespace Fp.ProjectTwiner
 			string destinationPath = Path.Combine(twinPath, ProjectSettingsPath);
 			string sourceSettings = File.ReadAllText(sourcePath);
 
-			string newSettings = Regex.Replace(sourceSettings, @"productName: (.+)$", $"productName: $1 [{twinId:N}]", RegexOptions.Multiline);
+			string newSettings = Regex.Replace(sourceSettings, @"productName: (.+)$", $"productName: $1 {twinName}Clone", RegexOptions.Multiline);
 			if(File.Exists(destinationPath))
 			{
 				File.Delete(destinationPath);
@@ -313,12 +344,12 @@ namespace Fp.ProjectTwiner
 			return true;
 		}
 
-		private static string GetTwinPath(string basePath, Guid twinId)
+		private static string GetTwinPath(string basePath, string twinName)
 		{
 			var originalDirectoryInfo = new DirectoryInfo(Directory.GetCurrentDirectory());
-			var originalFolderName = $"{originalDirectoryInfo.Name}/";
+			var originalFolderName = $"{originalDirectoryInfo.Name}";
 
-			return PathUtils.FixDirPath(Path.Combine(basePath, TwinCloneDirName, $"{twinId:N}", originalFolderName));
+			return PathUtils.FixDirPath(Path.Combine(basePath, $"{originalFolderName}_{twinName}"));
 		}
 
 		private string GetCacheKey()
@@ -394,7 +425,7 @@ namespace Fp.ProjectTwiner
 						{
 							GUILayout.BeginVertical();
 
-							EditorGUILayout.LabelField(nameof(Guid), twinProjectRecord.Guid);
+							EditorGUILayout.LabelField("Pseudonym", twinProjectRecord.Pseudonym);
 							EditorGUILayout.LabelField("Full Path", twinProjectRecord.FullPath);
 							EditorGUILayout.LabelField("Symlinks", twinProjectRecord.SymlinksPaths.Length.ToString());
 							EditorGUILayout.LabelField("Paths", twinProjectRecord.RealCopyPaths.Length.ToString());
@@ -416,13 +447,13 @@ namespace Fp.ProjectTwiner
 							if(GUILayout.Button("Refresh settings"))
 							{
 								UpdateProjectSettingsFile(
-									GetCurrentProjectDirectory(), twinProjectRecord.FullPath, Guid.Parse(twinProjectRecord.Guid)
+									GetCurrentProjectDirectory(), twinProjectRecord.FullPath, twinProjectRecord.Pseudonym
 								);
 							}
 
 							if(GUILayout.Button("Delete Twin"))
 							{
-								RemoveProject(twinProjectRecord.Guid);
+								RemoveProject(twinProjectRecord.Pseudonym);
 							}
 
 							if(GUILayout.Button("Open in Explorer"))
@@ -452,13 +483,13 @@ namespace Fp.ProjectTwiner
 			Process.Start("explorer.exe", $"/select,{directoryInfo.FullName}");
 		}
 
-		private void RemoveProject(string guid)
+		private void RemoveProject(string pseudonym)
 		{
 			int removeIdx = -1;
 			for(var index = 0; index < _cache.Records.Count; index++)
 			{
 				TwinProjectCache.TwinProjectRecord twinProjectRecord = _cache.Records[index];
-				if(twinProjectRecord.Guid.Equals(guid))
+				if(twinProjectRecord.Pseudonym.Equals(pseudonym))
 				{
 					removeIdx = index;
 				}
@@ -471,7 +502,7 @@ namespace Fp.ProjectTwiner
 
 			TwinProjectCache.TwinProjectRecord removedProject = _cache.Records[removeIdx];
 
-			if(!DeleteDirectory(new DirectoryInfo(removedProject.FullPath).Parent))
+			if(!DeleteDirectory(new DirectoryInfo(removedProject.FullPath)))
 			{
 				return;
 			}
@@ -487,6 +518,11 @@ namespace Fp.ProjectTwiner
 				return true;
 			}
 
+			if(DeleteDirectoryNew(dir))
+			{
+				return true;
+			}
+			
 			var files = new Stack<string>();
 			var directories = new Stack<string>();
 
@@ -600,7 +636,8 @@ namespace Fp.ProjectTwiner
 							//User command
 							using(var cli = ExecuteCommandLine.Instance)
 							{
-								cli.AddCommand($"takeown /r /f \"{dirInfo.FullName}\"");
+								//May be need to use /r /D Y
+								cli.AddCommand($"takeown /f \"{PathUtils.TrimDirectoryPath(dirInfo.FullName)}\"");
 								cli.AddCommand($"rmdir /s /q \"{dirInfo.FullName}\"");
 
 								cli.Execute();
@@ -624,6 +661,33 @@ namespace Fp.ProjectTwiner
 			return true;
 		}
 
+		private static bool DeleteDirectoryNew(FileSystemInfo dir)
+		{
+			try
+			{
+				EditorUtility.DisplayProgressBar("CLI Operation", "Now executing command line operation, wait to end this.", 0);
+
+				//User command
+				using var cli = ExecuteCommandLine.Instance;
+
+				cli.AddCommand($"takeown /f \"{PathUtils.TrimDirectoryPath(dir.FullName)}\"");
+				cli.AddCommand($"rmdir /s /q \"{dir.FullName}\"");
+
+				cli.Execute();
+
+				return true;
+			}
+			catch(Exception e)
+			{
+				Debug.LogException(e);
+				return false;
+			}
+			finally
+			{
+				EditorUtility.ClearProgressBar();
+			}
+		}
+
 		private void CreationToolDraw()
 		{
 			EditorGUILayout.LabelField($"{TwinEditorTitle} (Create New)", EditorStyles.centeredGreyMiniLabel);
@@ -634,7 +698,6 @@ namespace Fp.ProjectTwiner
 
 				_serializedObject.Update();
 
-				EditorGUILayout.LabelField(nameof(Guid), _newProjectSettings.TwinGuid.ToString("N"));
 				EditorGUILayout.PropertyField(_serializedObject.FindProperty(nameof(TwinProjectSettings.FilterByGitignore)));
 				
 				DrawPath(_serializedObject.FindProperty(nameof(TwinProjectSettings.StorePath)));
@@ -698,7 +761,6 @@ namespace Fp.ProjectTwiner
 			_newProjectSettings.RealCopyPath.AddRange(DefaultRealCopyPath.Select(s => new LockedString { Enabled = true, Readonly = false, Value = s }));
 			_newProjectSettings.RealCopyPath.Add(new LockedString { Enabled = true, Readonly = true, Value = ProjectSettingsPath });
 
-			_newProjectSettings.TwinGuid = Guid.NewGuid();
 			_newProjectSettings.FilterByGitignore = true;
 		}
 
@@ -722,6 +784,8 @@ namespace Fp.ProjectTwiner
 		{
 			try
 			{
+				subDirectory = PathUtils.FixPath(subDirectory);
+				
 				//Copy library
 				string sourcePath = Path.Combine(path, subDirectory);
 				string destinationPath = Path.Combine(twinPath, subDirectory);
@@ -731,7 +795,7 @@ namespace Fp.ProjectTwiner
 					return false;
 				}
 
-				var progressTitle = $"Coping [{subDirectory}]";
+				var progressTitle = $"Copying [{subDirectory}]";
 
 				Directory.CreateDirectory(destinationPath);
 
@@ -799,9 +863,6 @@ namespace Fp.ProjectTwiner
 		internal class TwinProjectSettings : ScriptableObject
 		{
 			[SerializeField]
-			internal Guid TwinGuid;
-
-			[SerializeField]
 			internal bool FilterByGitignore = false;
 
 			[SerializeField]
@@ -830,10 +891,15 @@ namespace Fp.ProjectTwiner
 			[Serializable]
 			internal class TwinProjectRecord
 			{
-				public string Guid;
+				public string Pseudonym;
 				public string FullPath;
 				public string[] SymlinksPaths;
 				public string[] RealCopyPaths;
+			}
+
+			public bool HasPseudo(string pseudonym)
+			{
+				return Records.Any(record => record.Pseudonym == pseudonym);
 			}
 		}
 
